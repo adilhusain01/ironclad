@@ -1,6 +1,6 @@
 # Ironclad status
 
-Updated 2026-11-04 12:40 IST (VPS session).
+Updated 2026-11-04 12:55 IST (VPS session).
 
 ## Done
 - Refusals proven on testnet: an unknown recipient and an over-cap payment are refused at the key (ledger entries `refuse`, no broadcast).
@@ -16,6 +16,8 @@ Updated 2026-11-04 12:40 IST (VPS session).
 - Tooling builds.
 
 ## Blocked or needs Adil
+- Switch the counter to the real Bitrefill once you have the key: put `BITREFILL_API_KEY=...` and `BITREFILL_BASE_URL=https://api.bitrefill.com/v2` in `counter/.env`, kill the counter (`kill $(cat counter/counter.pid)`), run `scripts/start-all.sh`; then one real purchase: `cd agent && npx tsx src/cli.ts buy airtel-india 10 --phone 91<your number>`; record the invoice id from `counter/orders.json` in README.md and SUBMISSION.md.
+- All three judge buttons on the public page were verified through the API (buy delivered; over-cap and unknown recipient refused). The group wallet needs about ten confirmations between spends from the same note; four extra float notes are being added so several demos can run back to back.
 - Post the frost-zec issue (`docs/upstream-frost-zec.md`) and a line in the forum thread "What are you building on Zcash?" (55172): public actions, Adil's call.
 - Record the demo video (script in `docs/demo-script.md`).
 - Make the repo public before finalizing on Stadium.
