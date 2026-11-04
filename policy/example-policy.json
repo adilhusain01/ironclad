@@ -8,10 +8,6 @@
     {
       "label": "Ironclad counter (Bitrefill fulfilment, testnet)",
       "address": "utest1u2gz0d9qzns9j7nlkn8e5skmafsxs22glx4sxtr89mc5cd8v8ycrmtflpnf2t0jx2pu89j4u4ada8adsy4zne9jg5dv07yemv0tn2gth32mwna2nnraaxnc0d3yg9gmt49k9m0x33puzpj8dcuvd09w8g9h2k4lzwn8fel4uqux9q59y"
-    },
-    {
-      "label": "Ironclad counter (Ironwood receiver, as the co-signer reports it)",
-      "address": "utest19v8q4l3lhu0adp6u94d33evcd5kszx4g3cpymg5l7c43a0sjh7y495dykz2wuhfr2ch64zz4p32rv38tmasad6p3ra8pzmyagqzdh59s"
     }
   ],
   "memo": {

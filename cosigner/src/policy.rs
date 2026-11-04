@@ -12,6 +12,7 @@ use std::io::Write;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
+use zcash_address::unified::{self, Container, Encoding};
 
 use crate::check::Report;
 
@@ -165,7 +166,7 @@ pub fn evaluate(policy: &Policy, ledger: &Ledger, report: &Report) -> Result<(),
     }
     let mut total = 0u64;
     for p in &report.payments {
-        let known = policy.allowed_recipients.iter().find(|r| r.address == p.address);
+        let known = policy.allowed_recipients.iter().find(|r| same_recipient(&r.address, &p.address));
         let Some(known) = known else {
             return Err(format!("recipient {} is not on the allow-list", short(&p.address)));
         };
@@ -197,6 +198,33 @@ pub fn decide(policy_path: &str, ledger_path: &str, report: &Report) -> Result<(
     };
     ledger.append(&policy, report, decision, reason).map_err(|e| format!("cannot write ledger: {e}"))?;
     verdict
+}
+
+/// The raw receivers inside a unified address, whatever their typecode. The
+/// co-signer re-encodes a paid output as an address with one receiver, while
+/// a policy usually lists the recipient's full address with several receivers,
+/// so two addresses name the same recipient when they share a receiver.
+pub fn receivers(address: &str) -> Vec<Vec<u8>> {
+    match unified::Address::decode(address) {
+        Ok((_, _, ua)) => ua
+            .items()
+            .into_iter()
+            .map(|r| match r {
+                unified::Receiver::Orchard(b) | unified::Receiver::Sapling(b) => b.to_vec(),
+                unified::Receiver::P2pkh(b) | unified::Receiver::P2sh(b) => b.to_vec(),
+                unified::Receiver::Unknown { data, .. } => data,
+            })
+            .collect(),
+        Err(_) => Vec::new(),
+    }
+}
+
+pub fn same_recipient(policy_address: &str, paid_address: &str) -> bool {
+    if policy_address == paid_address {
+        return true;
+    }
+    let allowed = receivers(policy_address);
+    receivers(paid_address).iter().any(|r| allowed.contains(r))
 }
 
 fn short(address: &str) -> String {
@@ -288,6 +316,17 @@ mod tests {
         let text = fs::read_to_string(&dir).unwrap().replace("\"decision\":\"allow\"", "\"decision\":\"refuse\"");
         fs::write(&dir, text).unwrap();
         assert_eq!(Ledger::open(dir.to_str().unwrap()).unwrap().verify(), Err(0));
+    }
+
+    #[test]
+    fn a_full_address_matches_the_single_receiver_the_cosigner_reports() {
+        let full = "utest1u2gz0d9qzns9j7nlkn8e5skmafsxs22glx4sxtr89mc5cd8v8ycrmtflpnf2t0jx2pu89j4u4ada8adsy4zne9jg5dv07yemv0tn2gth32mwna2nnraaxnc0d3yg9gmt49k9m0x33puzpj8dcuvd09w8g9h2k4lzwn8fel4uqux9q59y";
+        let reported = "utest19v8q4l3lhu0adp6u94d33evcd5kszx4g3cpymg5l7c43a0sjh7y495dykz2wuhfr2ch64zz4p32rv38tmasad6p3ra8pzmyagqzdh59s";
+        let other = "utest1pa9vv8dkpd5yg8vl5fd7nyyjqwvsq3f0734xmu2dvnxpnsh5t7hpztdj863greec2w672afxqdfd9u5lratvzh9rj46mutv6jpygmt6kwewhd237v5h0w7kjwfteqnq529dv7fyqajwgay76c970p88kexk6v59z8sapjpuywvgynk39";
+        assert!(receivers(full).len() >= 2, "the full address has several receivers");
+        assert!(same_recipient(full, reported));
+        assert!(!same_recipient(other, reported));
+        assert!(!same_recipient("not an address", reported));
     }
 
     #[test]

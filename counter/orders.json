@@ -8,10 +8,27 @@
       "recipient": "919999999999"
     },
     "paidZat": 1000000,
-    "status": "buying",
+    "status": "delivered",
     "createdAt": "2026-11-04T06:45:57.044Z",
-    "updatedAt": "2026-11-04T06:45:57.084Z",
+    "updatedAt": "2026-11-04T06:51:08.110Z",
     "invoiceId": "inv_mock_1",
-    "orderRef": "ord_mock_1"
+    "orderRef": "ord_mock_1",
+    "receiptTxid": "a098b0399e04bd23d4b0c9537c6777ac54e5d2c4ea4de7645928ee58f34c4c93"
+  },
+  "82457796b6d92643d6cfcade47716789a3c1ee72c9ebc77c27ccca592365e26a": {
+    "txid": "82457796b6d92643d6cfcade47716789a3c1ee72c9ebc77c27ccca592365e26a",
+    "memo": {
+      "orderId": "11112222",
+      "productId": "test-phone-refill",
+      "value": 10,
+      "recipient": "919999999999"
+    },
+    "paidZat": 1000000,
+    "status": "delivered",
+    "createdAt": "2026-11-04T06:50:58.586Z",
+    "updatedAt": "2026-11-04T06:51:15.322Z",
+    "invoiceId": "inv_mock_2",
+    "orderRef": "ord_mock_2",
+    "receiptTxid": "a270bba044160af3be3eac15f66906d74d8942b5829b700707cc97085fe4c6e0"
   }
 }
