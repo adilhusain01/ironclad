@@ -7,7 +7,7 @@ Updated 2026-11-04, about 21:30 IST (Claude Code on the Mac; the build moved bac
 - Stadium: submitted for both tracks before the 20:00 IST finalize deadline; edits open until 00:00. Stadium's check marked the testnet txid `82457796…5e26a` verified at 20:06 IST. Final values: SUBMISSION.md.
 - Demo video: https://youtu.be/8QMsMO8Dx6E (2:49), recorded live in a Ghostty terminal against the VPS and the live Bitrefill API, with ElevenLabs voiceover and captions. It replaces a first upload (https://youtu.be/W0D4gGicvA4) whose attacks scene opened on an idle screen for 2.3 seconds; unlist that one. The take script is `docs/video-run.sh`; the edit lives in the private repo `adilhusain01/demo-video-kit`.
 - Public site: https://vps.tail865d46.ts.net:8443 serves `web/` (Stockroom's design language): the live agent terminal with three keys, the co-signer's ledger, the counter's orders, the proofs and the trust table. Every txid links to `/tx/<txid>`, a live check through testnet.zec.rocks, because Zexplorer's testnet index was about 76,000 blocks behind.
-- Upstream: frost-zec issue https://github.com/OpenPGP-Wallet/frost-zec/issues/1 (policy mode for the co-signer) and zshield-mcp PR https://github.com/Steeve-Crypto/zshield-mcp/pull/4 (a real testnet backend, 28 tests passing).
+- Upstream: frost-zec issue https://github.com/OpenPGP-Wallet/frost-zec/issues/1 (policy mode for the co-signer) and zshield-mcp PR https://github.com/Steeve-Crypto/zshield-mcp/pull/4 (a real testnet backend, 28 tests passing). Forum reply: https://forum.zcashcommunity.com/t/what-are-you-building-on-zcash/55172/49.
 
 ## Running on the VPS
 
@@ -38,6 +38,5 @@ Updated 2026-11-04, about 21:30 IST (Claude Code on the Mac; the build moved bac
 
 ## Not done
 
-- The forum reply (`docs/forum-post.md`): Adil's to post from his forum account.
 - Two additions planned from the Mac at 14:55 were never built: an adversarial test run with counts of refused and unauthorised spends, and a check-in rule that pauses a scheduled top-up when the owner goes quiet.
 - Vercel deploy of `web/` (optional now that the VPS address serves it).
