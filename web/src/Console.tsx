@@ -16,45 +16,50 @@ const COOLDOWN_MS = 45_000;
 
 export function Console({ state, error, refresh }: { state: State | null; error: string | null; refresh: () => void }) {
   const [message, setMessage] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const [pending, setPending] = useState<DemoKind | null>(null);
   const now = useNow();
   const run = state?.run ?? null;
-  const running = pending || Boolean(run && !run.done);
+  const running = Boolean(pending) || Boolean(run && !run.done);
   const readyIn = run?.endedAt ? Math.max(0, Math.ceil((Date.parse(run.endedAt) + COOLDOWN_MS - now) / 1000)) : 0;
+  const active = pending ?? (run && !run.done ? run.kind : null);
 
   const ask = async (kind: DemoKind) => {
     setMessage(null);
-    setPending(true);
+    setPending(kind);
     const result = await startRun(kind);
     if (!result.ok) setMessage(result.message);
     refresh();
-    window.setTimeout(() => setPending(false), 1500);
+    window.setTimeout(() => setPending(null), 1500);
   };
 
   return (
-    <div className="grid overflow-hidden rounded-outer border border-line bg-panel text-left lg:grid-cols-[280px_minmax(0,1fr)_300px]">
+    <div className="grid overflow-hidden rounded-xl border border-line bg-paper-2/70 text-left lg:grid-cols-[290px_minmax(0,1fr)_310px]">
       <Rules state={state} />
-      <div className="order-first flex min-w-0 flex-col border-line lg:order-none lg:border-x">
-        <Terminal run={run} error={error} />
-        <Result run={run} orders={state?.orders ?? []} />
+      <div className="order-first flex min-w-0 flex-col p-1.5 lg:order-none">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg bg-term">
+          <Terminal run={run} error={error} />
+          <Result run={run} orders={state?.orders ?? []} />
+        </div>
       </div>
-      <div className="flex flex-col gap-4 border-t border-line p-4 lg:border-t-0">
-        <h3 className="text-meta font-medium text-ink">Ask the agent</h3>
-        <div className="flex flex-col gap-2.5">
+      <div className="flex flex-col gap-5 border-t border-line p-5 lg:border-t-0 lg:border-l">
+        <h3 className="font-heading text-[1.5rem] leading-tight font-semibold tracking-[-0.01em]">Ask the agent</h3>
+        <div className="flex flex-col gap-2">
           {asks.map((item) => (
             <button
               key={item.kind}
               type="button"
               disabled={running || readyIn > 0 || !state}
               onClick={() => ask(item.kind)}
-              className="press key-lift flex cursor-pointer flex-col gap-0.5 rounded-inner border border-line-strong bg-key px-4 py-3 text-left shadow-key hover:bg-key-hover disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none"
+              className={`press flex cursor-pointer flex-col gap-0.5 rounded-lg px-4 py-3 text-left disabled:cursor-not-allowed ${
+                active === item.kind ? "bg-ink text-paper" : "shadow-[inset_0_0_0_1.5px_var(--color-line)] hover:shadow-[inset_0_0_0_1.5px_var(--color-ink)] disabled:opacity-50"
+              }`}
             >
-              <span className="text-body font-medium text-ink">{item.title}</span>
-              <span className="text-small text-ink-muted">{item.line}</span>
+              <span className="font-bold">{item.title}</span>
+              <span className={`text-sm ${active === item.kind ? "text-paper-3" : "text-ink-soft"}`}>{item.line}</span>
             </button>
           ))}
         </div>
-        <p className="text-small text-ink-muted" aria-live="polite">
+        <p className="text-sm leading-relaxed text-ink-soft" aria-live="polite">
           {message ?? (running ? "The agent is working. Watch the terminal." : readyIn > 0 ? `The wallet is free again in ${readyIn} s.` : "Each key runs the real agent on Zcash testnet. A run takes under a minute.")}
         </p>
         <Shares />
@@ -76,34 +81,34 @@ function Rules({ state }: { state: State | null }) {
       ]
     : [];
   return (
-    <div className="order-last flex flex-col gap-4 border-t border-line p-4 lg:order-none lg:border-t-0">
-      <div className="flex items-baseline justify-between gap-3">
-        <h3 className="text-meta font-medium text-ink">Your rules</h3>
-        {policy && <span className="text-small text-ink-faint">{policy.name}</span>}
+    <div className="flex flex-col gap-5 border-t border-line p-5 lg:border-t-0 lg:border-r">
+      <div>
+        <span className="text-sm text-ink-soft">Held by the co-signer</span>
+        <h3 className="font-heading text-[1.5rem] leading-tight font-semibold tracking-[-0.01em]">Your rules</h3>
       </div>
-      <dl className="flex flex-col rounded-inner bg-tray shadow-tray">
-        {rows.length === 0 && <div className="px-3 py-3 text-small text-ink-faint">Loading the rules from the co-signer</div>}
+      <dl className="flex flex-col">
+        {rows.length === 0 && <div className="border-t border-line py-3 text-sm text-ink-faint">Loading the rules from the co-signer</div>}
         {rows.map(([label, value]) => (
-          <div key={label} className="flex items-baseline justify-between gap-3 border-t border-line px-3 py-2.5 first:border-t-0">
-            <dt className="text-small text-ink-muted">{label}</dt>
-            <dd className="text-right text-meta text-ink">{value}</dd>
+          <div key={label} className="flex items-baseline justify-between gap-3 border-t border-line py-3">
+            <dt className="text-sm text-ink-soft">{label}</dt>
+            <dd className="text-right font-mono text-[0.85rem] text-ink">{value}</dd>
           </div>
         ))}
       </dl>
       {policy && spent !== null && (
         <div className="flex flex-col gap-2">
-          <div className="flex items-baseline justify-between text-small">
-            <span className="text-ink-muted">Let through today</span>
-            <span className="text-ink">
-              {TAZ(spent)} of {TAZ(policy.daily_budget_zat)}
-            </span>
+          <span className="text-sm text-ink-soft">Let through today</span>
+          <span className="font-heading text-[2rem] leading-none font-medium tracking-[-0.4px]">{TAZ(spent)}</span>
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-paper-3">
+            <div className="h-full rounded-full bg-ink transition-[width] duration-300 ease-out" style={{ width: `${Math.min(100, (spent / policy.daily_budget_zat) * 100)}%` }} />
           </div>
-          <div className="h-1.5 overflow-hidden rounded-tiny bg-tray shadow-tray">
-            <div className="h-full rounded-tiny bg-allow transition-[width] duration-300 ease-out" style={{ width: `${Math.min(100, (spent / policy.daily_budget_zat) * 100)}%` }} />
+          <div className="flex justify-between text-[0.8rem] text-ink-faint">
+            <span>0</span>
+            <span>{TAZ(policy.daily_budget_zat)} a day</span>
           </div>
         </div>
       )}
-      <p className="text-small text-ink-muted">The co-signer holds these rules. The agent can't change them.</p>
+      <p className="mt-auto text-sm leading-relaxed text-ink-soft">The agent can't change these. A payment outside them can't be signed at all.</p>
     </div>
   );
 }
@@ -116,22 +121,19 @@ function Terminal({ run, error }: { run: Run | null; error: string | null }) {
     body.current?.scrollTo({ top: body.current.scrollHeight });
   }, [lines.length]);
   const command = asks.find((item) => item.kind === run?.kind)?.command;
-  const status = !run ? "Idle" : run.done ? "Finished" : "Running";
+  const status = !run ? "idle" : run.done ? `finished ${ago(run.startedAt)}` : "running";
   return (
     <div className="flex min-w-0 flex-col">
-      <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
-        <span className="font-mono text-meta text-ink">agent</span>
-        <span className={`rounded-tiny px-2 py-0.5 text-small ${status === "Running" ? "bg-raised text-running" : "text-ink-faint"}`}>
-          {status}
-          {run?.startedAt && status !== "Running" && ` ${ago(run.startedAt)}`}
-        </span>
+      <div className="flex items-center justify-between gap-3 border-b border-term-line px-4 py-2.5 font-mono text-[0.8rem]">
+        <span className="text-term-ink">agent on the VPS</span>
+        <span className={status === "running" ? "text-term-orange" : "text-term-faint"}>{status}</span>
       </div>
-      <div ref={body} className="h-[300px] overflow-auto bg-terminal px-4 py-3 font-mono text-small leading-relaxed text-terminal-ink sm:h-[340px]" role="log" aria-live="polite" aria-label="The agent's output">
-        {error && !run && <p className="text-terminal-red">{error}</p>}
-        {!run && !error && <p className="text-terminal-ink/70">Press a key on the right. The agent runs for real and its output appears here.</p>}
+      <div ref={body} className="h-[320px] overflow-auto px-4 py-3 font-mono text-[0.8rem] leading-relaxed text-term-ink sm:h-[360px]" role="log" aria-live="polite" aria-label="The agent's output">
+        {error && !run && <p className="text-term-red">{error}</p>}
+        {!run && !error && <p className="text-term-faint">Press a key on the right. The agent runs for real and its output appears here.</p>}
         {command && (
-          <p className="text-terminal-bright">
-            <span className="text-terminal-orange">$ </span>
+          <p className="text-paper">
+            <span className="text-term-orange">$ </span>
             {command}
           </p>
         )}
@@ -140,17 +142,16 @@ function Terminal({ run, error }: { run: Run | null; error: string | null }) {
             {line}
           </p>
         ))}
-        {run && !run.done && <span className="caret inline-block h-4 w-2 translate-y-0.5 bg-terminal-ink" aria-hidden="true" />}
+        {run && !run.done && <span className="caret inline-block h-4 w-2 translate-y-0.5 bg-term-ink" aria-hidden="true" />}
       </div>
     </div>
   );
 }
 
 function lineTone(line: string): string {
-  if (/refused|error|failed|Error/.test(line)) return "text-terminal-red";
-  if (/^sent: /.test(line)) return "text-terminal-green";
-  if (/^https:\/\//.test(line)) return "text-terminal-ink/80";
-  if (/^\s*(\[device|spend|change|fee|PAY|WARNING)/.test(line)) return "text-terminal-ink/70";
+  if (/refused|error|failed|Error/.test(line)) return "text-term-red";
+  if (/^sent: /.test(line)) return "text-term-green";
+  if (/^\s*(\[device|spend|change|fee|PAY|WARNING|https:\/\/)/.test(line)) return "text-term-faint";
   return "";
 }
 
@@ -164,9 +165,9 @@ function Result({ run, orders }: { run: Run | null; orders: Order[] }) {
   const order = orders.find((item) => item.txid === outcome.txid);
   return (
     <Banner tone="allow" title="Signed by two of three shares and sent">
-      <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <span className="flex flex-wrap items-center gap-x-3 gap-y-1 [&_a]:text-paper [&_a]:decoration-term-faint">
         <TxLink txid={outcome.txid} />
-        {run.kind === "buy" && <span className="text-ink-muted">{orderLine(order)}</span>}
+        {run.kind === "buy" && <span className="text-term-faint">{orderLine(order)}</span>}
         {order?.receiptTxid && <TxLink txid={order.receiptTxid} label="receipt memo" />}
       </span>
     </Banner>
@@ -181,13 +182,13 @@ function orderLine(order: Order | undefined): string {
 }
 
 function Banner({ tone, title, detail, children }: { tone: "allow" | "refuse" | "running"; title: string; detail?: string; children?: React.ReactNode }) {
-  const color = tone === "allow" ? "text-allow" : tone === "refuse" ? "text-refuse" : "text-running";
+  const color = tone === "allow" ? "text-term-green" : tone === "refuse" ? "text-term-red" : "text-term-orange";
   return (
-    <div className="flex gap-3 border-t border-line px-4 py-3">
+    <div className="flex gap-3 border-t border-term-line px-4 py-3">
       <span className={`mt-0.5 shrink-0 ${color}`}>{tone === "allow" ? <CheckIcon size={18} /> : tone === "refuse" ? <CrossIcon size={18} /> : <Spinner />}</span>
-      <div className="flex min-w-0 flex-col gap-1 text-meta">
-        <span className={`font-medium ${color}`}>{title}</span>
-        {detail && <span className="break-words text-ink-muted">{tidyLine(detail)}</span>}
+      <div className="flex min-w-0 flex-col gap-1 text-sm">
+        <span className={`font-bold ${color}`}>{title}</span>
+        {detail && <span className="break-words text-term-ink">{tidyLine(detail)}</span>}
         {children}
       </div>
     </div>
@@ -205,24 +206,22 @@ function Spinner() {
 
 function Shares() {
   const shares: [string, string, boolean][] = [
-    ["Agent", "Share 1. Proposes payments.", true],
-    ["Co-signer", "Share 2. Signs only inside your rules.", true],
-    ["You", "Share 3. Kept offline for recovery.", false],
+    ["Agent", "share 1, proposes payments", true],
+    ["Co-signer", "share 2, signs inside your rules", true],
+    ["You", "share 3, kept offline", false],
   ];
   return (
-    <div className="mt-auto flex flex-col gap-2 border-t border-line pt-4">
-      <h3 className="text-meta font-medium text-ink">Key shares, two needed to sign</h3>
-      <ul className="flex flex-col gap-2">
-        {shares.map(([name, line, online]) => (
-          <li key={name} className="flex items-start gap-2.5">
-            <span className={`mt-1.5 size-2 shrink-0 rounded-mark ${online ? "bg-allow" : "border border-ink-faint"}`} aria-hidden="true" />
-            <span className="text-small">
-              <span className="font-medium text-ink">{name}</span> <span className="text-ink-muted">{line}</span>
-              <span className="sr-only">{online ? " Online." : " Offline."}</span>
-            </span>
-          </li>
-        ))}
-      </ul>
+    <div className="mt-auto flex flex-col">
+      <span className="pb-2 text-sm text-ink-soft">Key shares, two needed to sign</span>
+      {shares.map(([name, line, online]) => (
+        <div key={name} className="flex items-center gap-2.5 border-t border-line py-2.5">
+          <span className={`size-2 shrink-0 rounded-full ${online ? "bg-positive" : "border-[1.5px] border-ink-faint"}`} aria-hidden="true" />
+          <span className="text-sm">
+            <span className="font-bold">{name}</span> <span className="text-ink-soft">{line}</span>
+            <span className="sr-only">{online ? " Online." : " Offline."}</span>
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

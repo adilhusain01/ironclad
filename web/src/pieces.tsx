@@ -1,4 +1,5 @@
-// Small pieces used in more than one section. The copy key and theme switch follow HeyTerm's own.
+// Small pieces used in more than one section, in Stockroom's language: solid ink or a 1.5px ink outline
+// for what you press, hairlines between rows, Bricolage for headings.
 
 import { useState, type ReactNode } from "react";
 import { API_BASE } from "./api.ts";
@@ -10,11 +11,23 @@ export const links = {
   frostZec: "https://github.com/OpenPGP-Wallet/frost-zec",
   bitrefill: "https://www.bitrefill.com",
   hackathon: "https://stadium.joinwebzero.com/programs/free-society-hack-2026",
+  video: "https://youtu.be/W0D4gGicvA4",
+};
+
+// Buttons, as Stockroom draws them.
+export const button = {
+  primary: "press inline-flex h-[52px] items-center justify-center gap-2 rounded-lg bg-ink px-7 text-base font-bold tracking-[0.2px] text-paper hover:bg-ink-hover",
+  outline: "press inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-bold tracking-[0.2px] text-ink shadow-[inset_0_0_0_1.5px_var(--color-ink)] hover:bg-ink/[0.06]",
+};
+
+export const heading = {
+  hero: "font-heading text-[clamp(2.9rem,8.4vw,6.5rem)] leading-[0.98] font-semibold tracking-[-0.03em]",
+  section: "font-heading text-[clamp(2rem,5vw,3.4rem)] leading-[1.04] font-semibold tracking-[-0.02em]",
 };
 
 function Svg({ size = 16, className = "", children }: { size?: number; className?: string; children: ReactNode }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className}>
       {children}
     </svg>
   );
@@ -35,17 +48,6 @@ export const ExternalIcon = (p: { size?: number; className?: string }) => (
     <path d="M7 17 17 7M8 7h9v9" />
   </Svg>
 );
-const MoonIcon = (p: { size?: number }) => (
-  <Svg {...p}>
-    <path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401" />
-  </Svg>
-);
-const SunIcon = (p: { size?: number }) => (
-  <Svg {...p}>
-    <circle cx="12" cy="12" r="4" />
-    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-  </Svg>
-);
 
 export function CopyCommand({ command }: { command: string }) {
   const [copied, setCopied] = useState(false);
@@ -63,13 +65,13 @@ export function CopyCommand({ command }: { command: string }) {
       type="button"
       onClick={copy}
       aria-label={copied ? "Copied" : `Copy: ${command}`}
-      className="press key-lift group flex w-full min-w-0 cursor-pointer items-center gap-3 rounded-inner border border-line-strong bg-key py-2.5 pr-3 pl-4 text-left font-mono text-meta text-ink shadow-key hover:bg-key-hover"
+      className="press flex w-full min-w-0 cursor-pointer items-center gap-3 rounded-lg py-3 pr-3 pl-4 text-left font-mono text-[0.85rem] text-ink shadow-[inset_0_0_0_1.5px_var(--color-line)] hover:shadow-[inset_0_0_0_1.5px_var(--color-ink)]"
     >
       <span className="text-ink-faint select-none">$</span>
       <span className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap">{command}</span>
-      <span className="relative grid size-5 shrink-0 place-items-center text-ink-muted">
+      <span className="relative grid size-5 shrink-0 place-items-center text-ink-soft">
         <CopyGlyph className={`col-start-1 row-start-1 transition-[opacity,scale,filter] duration-200 ease-[cubic-bezier(0.2,0,0,1)] ${copied ? "scale-25 opacity-0 blur-[4px]" : "scale-100 opacity-100 blur-[0px]"}`} />
-        <CheckIcon size={16} className={`col-start-1 row-start-1 text-allow transition-[opacity,scale,filter] duration-200 ease-[cubic-bezier(0.2,0,0,1)] ${copied ? "scale-100 opacity-100 blur-[0px]" : "scale-25 opacity-0 blur-[4px]"}`} />
+        <CheckIcon size={16} className={`col-start-1 row-start-1 text-positive transition-[opacity,scale,filter] duration-200 ease-[cubic-bezier(0.2,0,0,1)] ${copied ? "scale-100 opacity-100 blur-[0px]" : "scale-25 opacity-0 blur-[4px]"}`} />
       </span>
     </button>
   );
@@ -84,41 +86,10 @@ function CopyGlyph({ className }: { className: string }) {
   );
 }
 
-// Every colour changes at once on a theme switch, so transitions are paused for the swap.
-export function ThemeToggle() {
-  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme ?? "light");
-  const next = theme === "dark" ? "light" : "dark";
-  const toggle = () => {
-    const pause = document.createElement("style");
-    pause.textContent = "*,*::before,*::after{transition:none !important}";
-    document.head.appendChild(pause);
-    document.documentElement.dataset.theme = next;
-    void document.documentElement.offsetHeight;
-    requestAnimationFrame(() => pause.remove());
-    try {
-      localStorage.setItem("ironclad.site.theme", next);
-    } catch {
-      // Not saving only means the next visit starts light.
-    }
-    setTheme(next);
-  };
-  return (
-    <button
-      type="button"
-      onClick={toggle}
-      aria-label={`Switch to the ${next} theme`}
-      title={`Switch to the ${next} theme`}
-      className="press grid size-9 cursor-pointer place-items-center rounded-inner text-ink-muted transition-colors duration-150 hover:bg-raised hover:text-ink"
-    >
-      {theme === "dark" ? <SunIcon size={17} /> : <MoonIcon size={17} />}
-    </button>
-  );
-}
-
-// Every section shares one width, so their left edges line up.
+// A section of the page: a hairline above it, generous room around it.
 export function Section({ id, children, className = "" }: { id?: string; children: ReactNode; className?: string }) {
   return (
-    <section id={id} className={`mx-auto w-full max-w-[1280px] px-4 py-16 sm:px-6 md:py-24 ${className}`}>
+    <section id={id} className={`scroll-mt-8 border-t border-line py-20 ${className}`}>
       {children}
     </section>
   );
@@ -126,20 +97,21 @@ export function Section({ id, children, className = "" }: { id?: string; childre
 
 export function SectionHeading({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <div className="flex max-w-[62ch] flex-col gap-4">
-      <h2 className="display text-section text-ink">{title}</h2>
-      {children && <p className="lede text-lede text-ink-muted">{children}</p>}
+    <div>
+      <h2 className={`max-w-[20ch] ${heading.section}`}>{title}</h2>
+      {children && <p className="mt-5 max-w-[58ch] text-[1.05rem] leading-[1.6] text-ink-soft">{children}</p>}
     </div>
   );
 }
 
+// A txid, linked to the check on our own server (public explorers can lag behind testnet).
 export function TxLink({ txid, label }: { txid: string; label?: string }) {
   return (
     <a
       href={`${API_BASE}/tx/${txid}`}
       target="_blank"
       rel="noreferrer"
-      className="inline-flex items-center gap-1 rounded-tiny font-mono text-accent-ink underline decoration-line-strong underline-offset-3 hover:decoration-accent"
+      className="inline-flex items-center gap-1 font-mono text-[0.85rem] text-ink underline decoration-line underline-offset-4 hover:decoration-ink"
     >
       {label ?? `${txid.slice(0, 10)}…${txid.slice(-6)}`}
       <ExternalIcon size={13} />
