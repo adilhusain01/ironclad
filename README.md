@@ -8,7 +8,7 @@ Built at the Free Society Hack, Mumbai, 4 November 2026. Privacy track (themes 1
 
 - Agent builders who want to let an agent spend shielded ZEC. Every existing agent-payment project on Zcash enforces its spending policy in application code in front of a single-key wallet (zshield-mcp, Kage, ZecAgent, Zipher): whoever controls the host controls the money. Bitrefill's own agent safeguards say the same thing from the other side: "the skill is not a wallet, never give an agent wallet seeds". The gap is a wallet that can be handed to an agent safely.
 - Households and small groups who want a standing instruction ("keep these two phones topped up, up to this much a day") enforced by the key, not by trust in a process.
-- Evidence this is wanted: the event brief lists "an agent wallet with a spending cap" and "a 2-of-3 shared treasury" as wanted shapes; zshield-mcp's maintainer (a mentor here) has an open issue for a real chain layer behind its policy; the Zcash Foundation's 2026 priorities name FROST; the organisers' Lane 1 examples are "spend firewall" and "signed agent receipts". Zcash has no contracts, so a policy inside a threshold co-signer is the shielded equivalent of EVM spend permissions and session keys.
+- Related work by a mentor here: Drongo Labs' Swaraj checks every AI agent action against a declared policy before it runs and issues proof-backed receipts; Ironclad is the same idea applied to the money itself, at the key. Evidence this is wanted: the event brief lists "an agent wallet with a spending cap" and "a 2-of-3 shared treasury" as wanted shapes; zshield-mcp's maintainer (a mentor here) has an open issue for a real chain layer behind its policy; the Zcash Foundation's 2026 priorities name FROST; the organisers' Lane 1 examples are "spend firewall" and "signed agent receipts". Zcash has no contracts, so a policy inside a threshold co-signer is the shielded equivalent of EVM spend permissions and session keys.
 
 ## Demo
 
@@ -18,6 +18,12 @@ Built at the Free Society Hack, Mumbai, 4 November 2026. Privacy track (themes 1
 - The counter's receipt memo for that order, sent back shielded: `a270bba044160af3be3eac15f66906d74d8942b5829b700707cc97085fe4c6e0`
 - Group address (view it with the viewing key given on Stadium): `utest17rlcf2nujuu0yyczsq4vaeur7c6v7tqez3hqru22z3xq6d3ng6dysseqy8dr4d6q2k8re3rzuvewy5jvvcm8a2t0cgszkna3wcmr5hs7`
 - Real Bitrefill purchase invoice id: (added once the event credits are on the account; the counter runs against a local mock with the same REST shapes until then)
+
+## Which parts are for which track
+
+- Privacy track (themes 1 and 3): the FROST group, the policy co-signer daemon and its ledger, the agent CLI, the counter's shielded order and receipt memos, the dashboard. All on Zcash testnet.
+- Agentic Commerce track (lanes 1 and 5): the counter's Bitrefill REST client and purchase loop, the guardrails, the MCP server that lets any agent host shop through the policy, the agent's buy command.
+- Shared: the trust note and FEEDBACK.md.
 
 ## Run it (under 15 minutes)
 

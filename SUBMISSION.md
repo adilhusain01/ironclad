@@ -65,6 +65,10 @@ What didn't: no API key or event credits before the venue, so the counter was bu
 
 The agent can spend at most 0.2 TAZ per payment and 0.5 TAZ per UTC day, only to the counter's address; the counter buys at most $6 per order and 20 orders per day, only products on its list, one purchase per txid. Above any of these: the co-signer refuses (no signature exists), or the counter refuses; the owner's third share can approve an exception by hand.
 
+## Which parts are for which track
+
+Privacy: the FROST group, the policy co-signer and ledger, the agent CLI, shielded order and receipt memos, the dashboard. Agentic Commerce: the counter's Bitrefill REST loop, guardrails, the MCP server, the buy command. Shared: trust note and FEEDBACK.md.
+
 ## Bitrefill touchpoints (built vs reused)
 
 Reused: `@bitrefill/cli` for catalog and prices; the REST v2 shapes from the brief and docs. Built: the REST client with 429 backoff and final-state polling (`counter/src/bitrefill.ts`), the local mock, the order store with reservation, the MCP server that wraps search, quote and buy under the policy.
