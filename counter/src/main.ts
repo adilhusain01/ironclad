@@ -8,14 +8,14 @@
 // memo. It stores txids, order memos and invoice ids in orders.json.
 
 import { readFileSync } from "node:fs";
-import { Bitrefill, BitrefillError, FINAL_ORDER, priceUsd } from "./bitrefill.js";
+import { Bitrefill, BitrefillError, FINAL_ORDER, packagePrice } from "./bitrefill.js";
 import { parseOrderMemo, type OrderMemo } from "./memo.js";
 import { OrderStore } from "./orders.js";
 import { Zkool, incomingPayments } from "./zkool.js";
 
 type CounterPolicy = {
   allowed_products: string[];
-  max_usd_per_order: number;
+  max_price_per_order: number; // in the API's price unit (satoshis on a BTC account)
   max_orders_per_day: number;
   min_paid_zat: number;
   confirmations: number;
@@ -82,14 +82,14 @@ async function fulfil(txid: string, memo: OrderMemo, ctx: Parameters<typeof runO
   try {
     const product = await bitrefill.product(memo.productId);
     if (product.in_stock === false) return void store.update(txid, { status: "refused", note: "out of stock" });
-    const usd = priceUsd(product, memo.value);
-    if (usd === null) return void store.update(txid, { status: "refused", note: `value ${memo.value} is not a package of ${memo.productId}` });
-    if (usd > policy.max_usd_per_order) return void store.update(txid, { status: "refused", note: `$${usd} is over the counter's cap of $${policy.max_usd_per_order}` });
+    const price = packagePrice(product, memo.value);
+    if (price === null) return void store.update(txid, { status: "refused", note: `value ${memo.value} is not a package of ${memo.productId}` });
+    if (price > policy.max_price_per_order) return void store.update(txid, { status: "refused", note: `price ${price} is over the counter's cap of ${policy.max_price_per_order}` });
     if (product.recipient_type === "phone_number" && !memo.recipient) return void store.update(txid, { status: "refused", note: "top-up without a phone number" });
     const invoice = await bitrefill.createInvoice({ productId: memo.productId, value: memo.value, phoneNumber: memo.recipient, autoPay: true });
     const orderRef = invoice.orders?.[0]?.id;
     store.update(txid, { status: "buying", invoiceId: invoice.id, orderRef });
-    log("bought", txid, "invoice", invoice.id, "order", orderRef, `$${usd}`);
+    log("bought", txid, "invoice", invoice.id, "order", orderRef, `price ${price}`);
     if (orderRef) await settle(txid, orderRef, ctx);
   } catch (e) {
     const msg = e instanceof BitrefillError ? `${e.httpStatus} ${e.message}` : String(e);

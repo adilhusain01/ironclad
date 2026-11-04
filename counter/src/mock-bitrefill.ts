@@ -56,7 +56,7 @@ const server = createServer(async (req, res) => {
     if (!pkg) return json(res, 400, { message: "invalid value", status: "invalid" });
     if (prod.recipient_type === "phone_number" && !item.phone_number) return json(res, 400, { message: "phone_number required", status: "invalid" });
     const price = Number(pkg.payment_price);
-    if (body.auto_pay && balance < price) return json(res, 400, { message: "insufficient balance", status: "insufficient_balance" });
+    if (body.auto_pay && balance < price / 100) return json(res, 400, { message: "insufficient balance", status: "insufficient_balance" });
     n += 1;
     const invoiceId = `inv_mock_${n}`;
     const orderId = `ord_mock_${n}`;

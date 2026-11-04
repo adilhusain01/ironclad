@@ -80,17 +80,27 @@ export class Bitrefill {
   }
 }
 
-/** The USD price of one package of a product, from the product's own package list. */
-export function priceUsd(product: Product, value: number): number | null {
+/**
+ * The price of one package of a product in the account's own unit, from the
+ * product's package list. REST v2 returns `price` in the account currency's
+ * smallest unit (satoshis on a BTC account, seen 2026-11-04); the CLI and MCP
+ * return `payment_price` in USD. The counter's cap is in the same unit as
+ * whatever the API returns, so compare like with like.
+ */
+export function packagePrice(product: Product, value: number): number | null {
   for (const p of product.packages ?? []) {
     const v = Number(p.value ?? p.package_value);
     if (v === value) {
-      const price = p.payment_price !== undefined ? Number(p.payment_price) : p.price;
-      return price === undefined || Number.isNaN(price) ? null : price;
+      const price = p.price !== undefined ? Number(p.price) : p.payment_price !== undefined ? Number(p.payment_price) : NaN;
+      return Number.isNaN(price) ? null : price;
     }
   }
   return null;
 }
 
-export const FINAL_INVOICE = new Set(["complete", "blocked", "denied", "payment_error"]);
+/** Kept for callers that think in USD; the same lookup. */
+export const priceUsd = packagePrice;
+
+// Seen on the live API on 2026-11-04: invoices go not_delivered → all_delivered.
+export const FINAL_INVOICE = new Set(["complete", "all_delivered", "blocked", "denied", "payment_error"]);
 export const FINAL_ORDER = new Set(["delivered", "failed", "refunded"]);
