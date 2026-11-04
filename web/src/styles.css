@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+/* HeyTerm's tokens and motion, so Ironclad reads as the same family. */
+@import "./tokens.css";
+@import "./motion.css";
+
+@theme {
+  /* Martian Mono for headlines: the product lives in a terminal. Geist carries everything read. */
+  --font-display: "Martian Mono Variable", ui-monospace, monospace;
+
+  --text-hero: clamp(2.1rem, 1.3rem + 3.4vw, 4rem);
+  --text-hero--line-height: 1.06;
+  --text-section: clamp(1.55rem, 1.15rem + 1.5vw, 2.3rem);
+  --text-section--line-height: 1.14;
+  --text-lede: 1.1875rem;
+  --text-lede--line-height: 1.55;
+
+  /* What a decision means, in the product's own state colours. */
+  --color-allow: var(--color-finished);
+  --color-refuse: var(--color-failed);
+  --color-running: var(--color-working);
+}
+
+html {
+  scroll-padding-top: 24px;
+}
+
+body {
+  margin: 0;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+@layer base {
+  ::selection {
+    background: color-mix(in oklab, var(--color-accent) 28%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+}
+
+.display {
+  font-family: var(--font-display);
+  font-variation-settings: "wdth" 88;
+  font-weight: 640;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.lede {
+  text-wrap: pretty;
+}
+
+/* The caret at the end of a running terminal. */
+@keyframes caret-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+.caret {
+  animation: caret-blink 1s steps(1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .caret {
+    animation: none;
+  }
+}

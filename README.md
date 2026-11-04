@@ -20,6 +20,13 @@ Built at the Free Society Hack, Mumbai, 4 November 2026. Privacy track (themes 1
 - Group address (view it with the viewing key given on Stadium): `utest17rlcf2nujuu0yyczsq4vaeur7c6v7tqez3hqru22z3xq6d3ng6dysseqy8dr4d6q2k8re3rzuvewy5jvvcm8a2t0cgszkna3wcmr5hs7`
 - Real Bitrefill purchase through the whole loop (agent, co-signer, shielded payment `67c238aedf77ac1887a14400768f220a6ca2c2514f7063622493770b43f6408c`, counter, Bitrefill REST v2, receipt memo `8c7f4d5380be3b0f808c89b26c67e100d0ff90939b8836017e14e805577067a0`): invoice id `57eeb022-02b6-4fd8-b60c-b15af9610e64` (the free `test-phone-refill` product, delivered). A paid Airtel top-up follows once the event credits are on the account.
 
+## Website
+
+`web/` is the public site: a static Vite and React page with Tailwind v4, using HeyTerm's design tokens. It holds no keys and runs nothing itself. It reads the live policy, the co-signer's ledger, the counter's orders and each demo run from the dashboard API on the VPS (`GET /api/state`, `POST /api/demo` with `"async": true`), so every line in its terminal comes from the real agent.
+
+- Deploy on Vercel from this repo: Root Directory `web`, framework Vite (build `npm run build`, output `dist`). Optional env `VITE_API_BASE`; the default is `https://vps.tail865d46.ts.net:8443`.
+- Locally: `cd web && npm install && npm run dev`. Tests for how the page reads a run: `npm test`.
+
 ## Which parts are for which track
 
 - Privacy track (themes 1 and 3): the FROST group, the policy co-signer daemon and its ledger, the agent CLI, the counter's shielded order and receipt memos, the dashboard. All on Zcash testnet.
