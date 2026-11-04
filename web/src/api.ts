@@ -81,4 +81,5 @@ export async function startRun(kind: DemoKind): Promise<{ ok: true } | { ok: fal
 
 export const TAZ = (zat: number) => `${(zat / 1e8).toLocaleString("en-US", { maximumFractionDigits: 8 })} TAZ`;
 export const shortId = (value: string, head = 8, tail = 6) => (value.length > head + tail + 1 ? `${value.slice(0, head)}…${value.slice(-tail)}` : value);
-export const explorerTx = (txid: string) => `https://zexplorer.app/testnet/tx/${txid}`;
+// A txid check on our own server, through testnet.zec.rocks; public explorers can lag behind testnet.
+export const explorerTx = (txid: string) => `${API_BASE}/tx/${txid}`;
