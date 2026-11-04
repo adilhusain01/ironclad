@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run",
+    "dev": "tsx src/main.ts",
+    "mock": "tsx src/mock-bitrefill.ts"
   },
   "keywords": [],
   "author": "",
@@ -16,5 +18,8 @@
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "vitest": "^5.1.0"
   }
 }
