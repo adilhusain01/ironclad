@@ -18,7 +18,7 @@ Built at the Free Society Hack, Mumbai, 4 November 2026. Privacy track (themes 1
 - A purchase whose sync and broadcast went through Tor: `1cbec807f17289bf99254581c051fce9d62bf4ac182b33ec41820c3c7605f4ab`
 - The counter's receipt memo for that order, sent back shielded: `a270bba044160af3be3eac15f66906d74d8942b5829b700707cc97085fe4c6e0`
 - Group address (view it with the viewing key given on Stadium): `utest17rlcf2nujuu0yyczsq4vaeur7c6v7tqez3hqru22z3xq6d3ng6dysseqy8dr4d6q2k8re3rzuvewy5jvvcm8a2t0cgszkna3wcmr5hs7`
-- Real Bitrefill purchase invoice id: (added once the event credits are on the account; the counter runs against a local mock with the same REST shapes until then)
+- Real Bitrefill purchase through the whole loop (agent, co-signer, shielded payment `67c238aedf77ac1887a14400768f220a6ca2c2514f7063622493770b43f6408c`, counter, Bitrefill REST v2, receipt memo `8c7f4d5380be3b0f808c89b26c67e100d0ff90939b8836017e14e805577067a0`): invoice id `57eeb022-02b6-4fd8-b60c-b15af9610e64` (the free `test-phone-refill` product, delivered). A paid Airtel top-up follows once the event credits are on the account.
 
 ## Which parts are for which track
 

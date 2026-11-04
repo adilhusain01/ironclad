@@ -30,6 +30,7 @@ Updated 2026-11-04 15:05 IST (VPS session).
 - TAZ beyond the faucet (any Zcash mentor).
 
 ## Testnet evidence
+- Full loop on the real Bitrefill API: agent payment `67c238aedf77ac1887a14400768f220a6ca2c2514f7063622493770b43f6408c` → counter → invoice `57eeb022-02b6-4fd8-b60c-b15af9610e64` delivered → receipt memo `8c7f4d5380be3b0f808c89b26c67e100d0ff90939b8836017e14e805577067a0`.
 - Payment sent through the new zshield-mcp zkool backend (the ready upstream branch): `d0aad567233f0b349eac0a16fc7cbf4bb6bd70496ed2c291e2c896316824f9ca`.
 - FROST 2-of-3 shielded spend from the group wallet, co-signed by the policy daemon (policy allowed, ledger entry written), broadcast with zcash-devtool: txid `82457796b6d92643d6cfcade47716789a3c1ee72c9ebc77c27ccca592365e26a`, https://zexplorer.app/testnet/tx/82457796b6d92643d6cfcade47716789a3c1ee72c9ebc77c27ccca592365e26a (2026-11-04 12:19 IST). Group address `utest17rlcf2nujuu0yyczsq4vaeur7c6v7tqez3hqru22z3xq6d3ng6dysseqy8dr4d6q2k8re3rzuvewy5jvvcm8a2t0cgszkna3wcmr5hs7`, funded by `51c3d6397ecb8d1d45d346450748d110ea09dc0d2e73028f67f29339dd3f9101`.
 - Test order to the counter (mock Bitrefill bought it): `836e585f555e082cbf5d153ae530c65e17c542ae9c6cf6535613cf58c091c098`.

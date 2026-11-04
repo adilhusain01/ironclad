@@ -73,6 +73,10 @@ Privacy: the FROST group, the policy co-signer and ledger, the agent CLI, shield
 
 Reused: `@bitrefill/cli` for catalog and prices; the REST v2 shapes from the brief and docs. Built: the REST client with 429 backoff and final-state polling (`counter/src/bitrefill.ts`), the local mock, the order store with reservation, the MCP server that wraps search, quote and buy under the policy.
 
+## Real purchase invoice id
+
+57eeb022-02b6-4fd8-b60c-b15af9610e64 (test-phone-refill via the full loop; shielded payment 67c238aedf77ac1887a14400768f220a6ca2c2514f7063622493770b43f6408c, receipt memo 8c7f4d5380be3b0f808c89b26c67e100d0ff90939b8836017e14e805577067a0). Paid Airtel top-up invoice: add when credits arrive.
+
 ## Demo day contact
 
 Adil's Telegram or WhatsApp (fill in).

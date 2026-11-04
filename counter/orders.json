@@ -62,5 +62,21 @@
     "invoiceId": "inv_mock_4",
     "orderRef": "ord_mock_4",
     "receiptTxid": "265e5395d66d588da25be697a2eee5efa0752ee9e7604c239eb8136f28735ab4"
+  },
+  "67c238aedf77ac1887a14400768f220a6ca2c2514f7063622493770b43f6408c": {
+    "txid": "67c238aedf77ac1887a14400768f220a6ca2c2514f7063622493770b43f6408c",
+    "memo": {
+      "orderId": "84297fe3",
+      "productId": "test-phone-refill",
+      "value": 10,
+      "recipient": "18695551234"
+    },
+    "paidZat": 1000000,
+    "status": "delivered",
+    "createdAt": "2026-11-04T09:34:41.890Z",
+    "updatedAt": "2026-11-04T09:34:50.366Z",
+    "invoiceId": "57eeb022-02b6-4fd8-b60c-b15af9610e64",
+    "orderRef": "6aeafc32757d3707f8b0a62f",
+    "receiptTxid": "8c7f4d5380be3b0f808c89b26c67e100d0ff90939b8836017e14e805577067a0"
   }
 }
