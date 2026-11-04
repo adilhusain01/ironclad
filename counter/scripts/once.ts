@@ -1,0 +1,16 @@
+import { Bitrefill } from "../src/bitrefill.js";
+import { OrderStore } from "../src/orders.js";
+import { Zkool } from "../src/zkool.js";
+import { runOnce } from "../src/main.js";
+import { readFileSync } from "node:fs";
+const t0 = Date.now();
+const log = (m: string) => console.log(((Date.now() - t0) / 1000).toFixed(1) + "s", m);
+const zkool = new Zkool("http://127.0.0.1:8010");
+log("sync start");
+const tip = await zkool.synchronize([1]);
+log("tip " + tip);
+const store = new OrderStore("./orders.json");
+const policy = JSON.parse(readFileSync("./counter-policy.json", "utf8"));
+await runOnce({ zkool, account: 1, bitrefill: new Bitrefill("mock", "http://127.0.0.1:8790/v2"), store, policy, payerReceipt: async (_t, m) => { log("receipt memo: " + m); return null; } });
+log("done");
+console.log(JSON.stringify(store.all(), null, 1));

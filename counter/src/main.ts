@@ -28,6 +28,7 @@ const env = (k: string, fallback?: string) => {
 };
 
 const log = (...a: unknown[]) => console.log(new Date().toISOString(), ...a);
+const seen = new Set<string>();
 
 export async function runOnce(ctx: {
   zkool: Zkool;
@@ -44,7 +45,13 @@ export async function runOnce(ctx: {
     if (tip - p.height + 1 < policy.confirmations) continue;
     if (store.get(p.txid)) continue;
     const memo = p.memos.map(parseOrderMemo).find((m): m is OrderMemo => m !== null);
-    if (!memo) continue; // a payment without an order memo is a donation, nothing to do
+    if (!memo) {
+      if (!seen.has(p.txid)) {
+        seen.add(p.txid);
+        log("payment without an order memo, nothing to do", p.txid, p.memos[0]?.slice(0, 40) ?? "");
+      }
+      continue;
+    }
     if (!store.reserve(p.txid, memo, p.valueZat)) continue;
     log("reserved", p.txid, memo);
     const verdict = checkOrder(memo, p.valueZat, store, policy);
