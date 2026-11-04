@@ -1,8 +1,11 @@
 # Ironclad status
 
-Updated 2026-11-04 12:20 IST (VPS session).
+Updated 2026-11-04 12:40 IST (VPS session).
 
 ## Done
+- Refusals proven on testnet: an unknown recipient and an over-cap payment are refused at the key (ledger entries `refuse`, no broadcast).
+- Public dashboard live at https://vps.tail865d46.ts.net:8443 (Tailscale Funnel on 8443) with three judge buttons.
+- MCP server for Claude Desktop or Cursor (`agent/src/mcp.ts`), README with the trust note, SUBMISSION.md, FEEDBACK.md, draft upstream issue for frost-zec.
 - FROST is the product: DKG (frost-zec), view-only group wallet in zcash-devtool, PCZT create and prove, policy co-signer daemon signs inside policy, 2-of-3 spend mined on testnet.
 - Counter detects order memos, reserves per txid, buys from the (mock) Bitrefill REST API.
 - Repo created, builds of zcash-devtool and frost-zec started on the VPS.
@@ -13,6 +16,9 @@ Updated 2026-11-04 12:20 IST (VPS session).
 - Tooling builds.
 
 ## Blocked or needs Adil
+- Post the frost-zec issue (`docs/upstream-frost-zec.md`) and a line in the forum thread "What are you building on Zcash?" (55172): public actions, Adil's call.
+- Record the demo video (script in `docs/demo-script.md`).
+- Make the repo public before finalizing on Stadium.
 - Bitrefill API key and event credits (ask Max N, Ankush Mehta or Aamir Shaikh at the venue).
 - TAZ beyond the faucet (any Zcash mentor).
 
