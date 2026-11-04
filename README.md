@@ -14,7 +14,7 @@ Built at the Free Society Hack, Mumbai, 4 November 2026. Privacy track (themes 1
 
 - Demo video (2:51, recorded live in a terminal against Zcash testnet and Bitrefill's API, with voiceover and captions): https://youtu.be/W0D4gGicvA4. The first recording (2:29) is in this repo as `docs/demo.mp4`.
 - Public URL: https://vps.tail865d46.ts.net:8443 (the judge presses three buttons: an in-policy purchase, an over-cap attempt, an unknown recipient; the ledger and the counter's orders update on the page)
-- Testnet transaction, a 2-of-3 FROST spend co-signed by the policy daemon: `82457796b6d92643d6cfcade47716789a3c1ee72c9ebc77c27ccca592365e26a` ([explorer](https://zexplorer.app/testnet/tx/82457796b6d92643d6cfcade47716789a3c1ee72c9ebc77c27ccca592365e26a))
+- Testnet transaction, a 2-of-3 FROST spend co-signed by the policy daemon: `82457796b6d92643d6cfcade47716789a3c1ee72c9ebc77c27ccca592365e26a` ([check it](https://vps.tail865d46.ts.net:8443/tx/82457796b6d92643d6cfcade47716789a3c1ee72c9ebc77c27ccca592365e26a): mined in block 4,581,204, looked up live through testnet.zec.rocks; [Zexplorer](https://zexplorer.app/testnet/tx/82457796b6d92643d6cfcade47716789a3c1ee72c9ebc77c27ccca592365e26a) was about 76,000 blocks behind testnet on 4 Nov and may show not found)
 - A purchase whose sync and broadcast went through Tor: `1cbec807f17289bf99254581c051fce9d62bf4ac182b33ec41820c3c7605f4ab`
 - The counter's receipt memo for that order, sent back shielded: `a270bba044160af3be3eac15f66906d74d8942b5829b700707cc97085fe4c6e0`
 - Group address (view it with the viewing key given on Stadium): `utest17rlcf2nujuu0yyczsq4vaeur7c6v7tqez3hqru22z3xq6d3ng6dysseqy8dr4d6q2k8re3rzuvewy5jvvcm8a2t0cgszkna3wcmr5hs7`
