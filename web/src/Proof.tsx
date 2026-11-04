@@ -4,7 +4,7 @@ import { API_BASE } from "./api.ts";
 import { links, Section, SectionHeading, TxLink } from "./pieces.tsx";
 
 // The demo on YouTube; with no id the recording plays from the server instead.
-const YOUTUBE_ID = "W0D4gGicvA4";
+const YOUTUBE_ID = "8QMsMO8Dx6E";
 
 const proofs: { title: string; line: string; txid?: string; extra?: React.ReactNode }[] = [
   {

@@ -11,7 +11,7 @@ export const links = {
   frostZec: "https://github.com/OpenPGP-Wallet/frost-zec",
   bitrefill: "https://www.bitrefill.com",
   hackathon: "https://stadium.joinwebzero.com/programs/free-society-hack-2026",
-  video: "https://youtu.be/W0D4gGicvA4",
+  video: "https://youtu.be/8QMsMO8Dx6E",
 };
 
 // Buttons, as Stockroom draws them.
