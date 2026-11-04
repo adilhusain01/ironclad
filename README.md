@@ -12,7 +12,7 @@ Built at the Free Society Hack, Mumbai, 4 November 2026. Privacy track (themes 1
 
 ## Demo
 
-- Demo video (2:29, a real terminal recording of the flow, idle time compressed): https://vps.tail865d46.ts.net:8443/demo.mp4, also  in this repo (source recording )
+- Demo video (2:29, a real terminal recording of the flow, idle time compressed): https://vps.tail865d46.ts.net:8443/demo.mp4, also in this repo as `docs/demo.mp4` (source recording `docs/demo.cast`)
 - Public URL: https://vps.tail865d46.ts.net:8443 (the judge presses three buttons: an in-policy purchase, an over-cap attempt, an unknown recipient; the ledger and the counter's orders update on the page)
 - Testnet transaction, a 2-of-3 FROST spend co-signed by the policy daemon: `82457796b6d92643d6cfcade47716789a3c1ee72c9ebc77c27ccca592365e26a` ([explorer](https://zexplorer.app/testnet/tx/82457796b6d92643d6cfcade47716789a3c1ee72c9ebc77c27ccca592365e26a))
 - A purchase whose sync and broadcast went through Tor: `1cbec807f17289bf99254581c051fce9d62bf4ac182b33ec41820c3c7605f4ab`
