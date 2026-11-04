@@ -26,7 +26,7 @@ https://vps.tail865d46.ts.net:8443
 
 ## Demo video
 
-URL: https://vps.tail865d46.ts.net:8443/demo.mp4 (or https://github.com/adilhusain01/ironclad/raw/main/docs/demo.mp4). Length: 2:29.
+URL: https://youtu.be/W0D4gGicvA4 (2:51, recorded live in a terminal against Zcash testnet and Bitrefill's API, with voiceover and captions). The first recording, 2:29, is still at https://vps.tail865d46.ts.net:8443/demo.mp4.
 
 ## Technologies (comma separated)
 
