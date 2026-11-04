@@ -1,59 +1,92 @@
 @import "tailwindcss";
 
-/* HeyTerm's tokens and motion, so Ironclad reads as the same family. */
-@import "./tokens.css";
-@import "./motion.css";
-
+/*
+  Stockroom's design language (same author): cool concrete paper, blue-black ink, one accent (signal orange)
+  for the thing to look at, a quiet green for what was allowed and an oxblood for what was refused.
+  Type: Bricolage Grotesque for display, Instrument Sans for the interface, JetBrains Mono for figures.
+  Light only. Pressable things are solid ink or a 1.5px ink outline; nothing else casts a shadow.
+*/
 @theme {
-  /* Martian Mono for headlines: the product lives in a terminal. Geist carries everything read. */
-  --font-display: "Martian Mono Variable", ui-monospace, monospace;
+  --color-paper: #eef0ec;
+  --color-paper-2: #e5e8e3;
+  --color-paper-3: #d9ddd6;
+  --color-ink: #161b1e;
+  --color-ink-hover: #262d32;
+  --color-ink-soft: #444c51;
+  --color-ink-faint: #6b757b;
+  --color-line: #c7cdc6;
+  --color-line-soft: #d8ddd6;
+  --color-signal: #d4541c;
+  --color-signal-deep: #a63f0f;
+  --color-signal-wash: #f3dccd;
+  --color-positive: #2f7a4f;
+  --color-danger: #b2362b;
 
-  --text-hero: clamp(2.1rem, 1.3rem + 3.4vw, 4rem);
-  --text-hero--line-height: 1.06;
-  --text-section: clamp(1.55rem, 1.15rem + 1.5vw, 2.3rem);
-  --text-section--line-height: 1.14;
-  --text-lede: 1.1875rem;
-  --text-lede--line-height: 1.55;
+  /* The terminal: the ink itself, with cool text. */
+  --color-term: #161b1e;
+  --color-term-line: #2a3236;
+  --color-term-ink: #d9ddd6;
+  --color-term-faint: #8d989e;
+  --color-term-red: #f0846f;
+  --color-term-green: #8fd0a6;
+  --color-term-orange: #f39a63;
 
-  /* What a decision means, in the product's own state colours. */
-  --color-allow: var(--color-finished);
-  --color-refuse: var(--color-failed);
-  --color-running: var(--color-working);
-}
+  --font-heading: "Bricolage Grotesque Variable", "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "Instrument Sans Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono Variable", "IBM Plex Mono", ui-monospace, Menlo, monospace;
 
-html {
-  scroll-padding-top: 24px;
-}
+  /* Concentric radii: inner = outer minus the gap between them. */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 16px;
 
-body {
-  margin: 0;
-  background: var(--color-canvas);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 @layer base {
+  html {
+    color-scheme: light;
+    scroll-padding-top: 24px;
+  }
+  body {
+    margin: 0;
+    background-color: var(--color-paper);
+    /* Concrete, not cream: a faint grain, a cool light from the top, darker toward the bottom edge. */
+    background-image:
+      radial-gradient(120% 100% at 50% 0%, rgba(255, 255, 255, 0.55), transparent 60%),
+      radial-gradient(140% 120% at 50% 120%, rgba(60, 72, 80, 0.12), transparent 55%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    background-attachment: fixed;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-feature-settings: "tnum" 1;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
   ::selection {
-    background: color-mix(in oklab, var(--color-accent) 28%, transparent);
+    background: rgba(212, 84, 28, 0.22);
   }
   :focus-visible {
-    outline: 2px solid var(--color-accent);
-    outline-offset: 3px;
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+  a {
+    text-underline-offset: 2px;
   }
 }
 
-.display {
-  font-family: var(--font-display);
-  font-variation-settings: "wdth" 88;
-  font-weight: 640;
-  letter-spacing: -0.035em;
-  text-wrap: balance;
+/* Feedback on press: things you press give a little. */
+.press {
+  transition:
+    scale 150ms var(--ease-out-strong),
+    background-color 150ms var(--ease-out-strong),
+    color 150ms var(--ease-out-strong),
+    box-shadow 150ms var(--ease-out-strong);
 }
-
-.lede {
-  text-wrap: pretty;
+.press:active:not(:disabled) {
+  scale: 0.97;
 }
 
 /* The caret at the end of a running terminal. */
@@ -70,8 +103,12 @@ body {
 .caret {
   animation: caret-blink 1s steps(1) infinite;
 }
+
 @media (prefers-reduced-motion: reduce) {
-  .caret {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

@@ -9,20 +9,20 @@ export function Record({ state }: { state: State | null }) {
   const labels = recipientLabels(state);
   return (
     <Section id="record">
-      <SectionHeading title="Every decision is on the record.">
-        The co-signer writes each one to a hash-chained log before its share leaves. The counter logs what it bought.
+      <SectionHeading title="Every decision is on the record">
+        The co-signer writes each one to a hash-chained log before its share leaves. The counter logs what it bought. Both lists are live.
       </SectionHeading>
-      <div className="mt-10 grid gap-4 lg:grid-cols-2">
-        <Panel title="Co-signer decisions" note={state ? `${state.ledger.length} most recent` : undefined}>
+      <div className="mt-12 grid gap-x-16 gap-y-12 lg:grid-cols-2">
+        <List title="Co-signer decisions" note={state ? `${state.ledger.length} most recent` : undefined}>
           {state?.ledger.length === 0 && <Empty text="No decisions yet. Press a key above to make one." />}
           {state?.ledger.map((entry, index) => <Decision key={entry.hash ?? `${entry.at}-${index}`} entry={entry} labels={labels} />)}
           {!state && <Empty text="Loading from the live server" />}
-        </Panel>
-        <Panel title="Counter orders on Bitrefill" note={state ? `${state.orders.length} most recent` : undefined}>
+        </List>
+        <List title="Orders on Bitrefill" note={state ? `${state.orders.length} most recent` : undefined}>
           {state?.orders.length === 0 && <Empty text="No orders yet." />}
           {state?.orders.map((order) => <OrderRow key={order.txid} order={order} />)}
           {!state && <Empty text="Loading from the live server" />}
-        </Panel>
+        </List>
       </div>
     </Section>
   );
@@ -43,20 +43,20 @@ function recipientLabels(state: State | null): Map<string, string> {
   return labels;
 }
 
-function Panel({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
+function List({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
   return (
-    <div className="flex min-w-0 flex-col overflow-hidden rounded-outer border border-line bg-panel">
-      <div className="flex items-baseline justify-between gap-3 border-b border-line px-4 py-3">
-        <h3 className="text-meta font-medium text-ink">{title}</h3>
-        {note && <span className="text-small text-ink-faint">{note}</span>}
+    <div className="flex min-w-0 flex-col">
+      <div className="flex items-baseline justify-between gap-3 pb-3">
+        <h3 className="font-heading text-[1.5rem] leading-tight font-semibold tracking-[-0.01em]">{title}</h3>
+        {note && <span className="text-sm text-ink-faint">{note}</span>}
       </div>
-      <ul className="max-h-[520px] overflow-auto">{children}</ul>
+      <ul className="max-h-[560px] overflow-auto border-b border-line">{children}</ul>
     </div>
   );
 }
 
 function Empty({ text }: { text: string }) {
-  return <li className="px-4 py-6 text-meta text-ink-faint">{text}</li>;
+  return <li className="border-t border-line py-5 text-ink-faint">{text}</li>;
 }
 
 function Decision({ entry, labels }: { entry: LedgerEntry; labels: Map<string, string> }) {
@@ -64,22 +64,23 @@ function Decision({ entry, labels }: { entry: LedgerEntry; labels: Map<string, s
   const [address, zat] = entry.payments[0] ?? ["", 0];
   const known = labels.get(address);
   return (
-    <li className="flex gap-3 border-t border-line px-4 py-3 first:border-t-0">
-      <span className={`mt-0.5 shrink-0 ${allowed ? "text-allow" : "text-refuse"}`}>{allowed ? <CheckIcon size={16} /> : <CrossIcon size={16} />}</span>
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-          <span className="text-meta text-ink">
-            <span className={`font-medium ${allowed ? "text-allow" : "text-refuse"}`}>{allowed ? "Signed" : "Refused"}</span> {TAZ(zat)} to {known ?? (
+    <li className="flex gap-3 border-t border-line py-4">
+      <span className={`mt-1 shrink-0 ${allowed ? "text-positive" : "text-danger"}`}>{allowed ? <CheckIcon size={16} /> : <CrossIcon size={16} />}</span>
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+          <span>
+            <span className={`font-bold ${allowed ? "text-positive" : "text-danger"}`}>{allowed ? "Signed" : "Refused"}</span> <span className="font-mono text-[0.9rem]">{TAZ(zat)}</span> to{" "}
+            {known ?? (
               <>
-                a stranger <span className="font-mono text-small text-ink-muted">{shortId(address, 10, 6)}</span>
+                a stranger <span className="font-mono text-[0.85rem] text-ink-soft">{shortId(address, 10, 6)}</span>
               </>
             )}
           </span>
-          <time dateTime={entry.at} className="text-small text-ink-faint" title={entry.at}>
+          <time dateTime={entry.at} className="text-sm text-ink-faint" title={entry.at}>
             {ago(entry.at)}
           </time>
         </div>
-        {entry.reason && <span className="text-small break-words text-ink-muted">{humanReason(entry.reason)}</span>}
+        {entry.reason && <span className="text-sm break-words text-ink-soft">{humanReason(entry.reason)}</span>}
       </div>
     </li>
   );
@@ -89,18 +90,18 @@ function OrderRow({ order }: { order: Order }) {
   const delivered = order.status === "delivered";
   const mock = order.invoiceId?.startsWith("inv_mock");
   return (
-    <li className="flex gap-3 border-t border-line px-4 py-3 first:border-t-0">
-      <span className={`mt-0.5 shrink-0 ${delivered ? "text-allow" : "text-running"}`}>{delivered ? <CheckIcon size={16} /> : <CrossIcon size={16} />}</span>
+    <li className="flex gap-3 border-t border-line py-4">
+      <span className={`mt-1 shrink-0 ${delivered ? "text-positive" : "text-signal"}`}>{delivered ? <CheckIcon size={16} /> : <CrossIcon size={16} />}</span>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-          <span className="text-meta text-ink">
-            <span className="font-medium">{order.memo.productId}</span> {order.memo.value} for a test number
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+          <span>
+            <span className="font-bold">{order.memo.productId}</span> <span className="font-mono text-[0.9rem]">{order.memo.value}</span> for a test number
           </span>
-          <time dateTime={order.createdAt} className="text-small text-ink-faint" title={order.createdAt}>
+          <time dateTime={order.createdAt} className="text-sm text-ink-faint" title={order.createdAt}>
             {ago(order.createdAt)}
           </time>
         </div>
-        <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-small text-ink-muted">
+        <span className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-soft">
           <span>
             {delivered ? "Delivered" : order.status}
             {order.invoiceId && (mock ? ", from a local mock before the API key arrived" : `, invoice ${order.invoiceId.slice(0, 8)}`)}

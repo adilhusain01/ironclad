@@ -62,12 +62,12 @@ export function BeamLine({ id, from, to, lit, run }: { id: string; from: Point; 
   const path = Geometry.roundedPath([from, to]);
   return (
     <g>
-      <path d={path} className={`fill-none transition-[stroke] duration-200 ${lit ? "stroke-accent" : "stroke-line-strong"}`} strokeWidth={lit ? 1.6 : 1.2} />
+      <path d={path} className={`fill-none transition-[stroke] duration-200 ${lit ? "stroke-signal" : "stroke-line"}`} strokeWidth={lit ? 1.6 : 1.2} />
       <defs>
         <linearGradient ref={gradientRef} id={id} gradientUnits="userSpaceOnUse" x1={window0.x1} y1={window0.y1} x2={window0.x2} y2={window0.y2}>
-          <stop offset="0" style={{ stopColor: "var(--color-accent)", stopOpacity: 0 }} />
-          <stop offset="0.55" style={{ stopColor: "var(--color-terminal-orange)", stopOpacity: 1 }} />
-          <stop offset="1" style={{ stopColor: "var(--color-accent)", stopOpacity: 0 }} />
+          <stop offset="0" style={{ stopColor: "var(--color-signal)", stopOpacity: 0 }} />
+          <stop offset="0.55" style={{ stopColor: "var(--color-signal-deep)", stopOpacity: 1 }} />
+          <stop offset="1" style={{ stopColor: "var(--color-signal)", stopOpacity: 0 }} />
         </linearGradient>
       </defs>
       {!reducedMotion && <path d={path} fill="none" stroke={`url(#${id})`} strokeWidth={3} strokeLinecap="round" />}
@@ -81,7 +81,7 @@ export function Connector({ points, lit = false, dashed = false, arrow, classNam
   return (
     <path
       d={Geometry.roundedPath(points)}
-      className={`fill-none transition-[stroke] duration-200 ${lit ? "stroke-accent" : "stroke-line-strong"} ${className}`}
+      className={`fill-none transition-[stroke] duration-200 ${lit ? "stroke-signal" : "stroke-line"} ${className}`}
       strokeWidth={lit ? 1.6 : 1.2}
       strokeDasharray={dashed ? "4 4" : undefined}
       markerEnd={arrow ? `url(#${arrow}-arrow${lit ? "-lit" : ""})` : undefined}
