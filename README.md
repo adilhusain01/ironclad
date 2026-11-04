@@ -25,6 +25,7 @@ Built at the Free Society Hack, Mumbai, 4 November 2026. Privacy track (themes 1
 `web/` is the public site: a static Vite and React page with Tailwind v4, using HeyTerm's design tokens. It holds no keys and runs nothing itself. It reads the live policy, the co-signer's ledger, the counter's orders and each demo run from the dashboard API on the VPS (`GET /api/state`, `POST /api/demo` with `"async": true`), so every line in its terminal comes from the real agent.
 
 - Deploy on Vercel from this repo: Root Directory `web`, framework Vite (build `npm run build`, output `dist`). Optional env `VITE_API_BASE`; the default is `https://vps.tail865d46.ts.net:8443`.
+- On the VPS the dashboard serves the same build at its own address (https://vps.tail865d46.ts.net:8443), so the page and the API share one origin: `cd web && npm run build`, copy `web/dist` to the server, restart the dashboard.
 - Locally: `cd web && npm install && npm run dev`. Tests for how the page reads a run: `npm test`.
 
 ## Which parts are for which track
