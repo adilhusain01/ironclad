@@ -8,6 +8,8 @@ Written from notes kept from the first error on 4 November 2026. Area, what we t
 
 ## Node or indexer (lightwalletd)
 
+- **Zexplorer** (the explorer the brief links): on the evening of 4 Nov its testnet node showed "NODE SYNCING #4,506,125" while testnet was past block 4,582,000, so every transaction from the last few days, ours included, showed "Transaction not found". testnet.zcashexplorer.app answered 403 to scripted requests. A second working explorer, or a sync status next to "not found", would stop judges reading a lag as a fake txid.
+
 - `testnet.zec.rocks:443` answered every call. zcash-devtool's `sync` and zkool_graphql's `synchronize` both took under a second once the wallet birthday was recent.
 
 ## SDK or wallet tool
@@ -18,6 +20,8 @@ Written from notes kept from the first error on 4 November 2026. Area, what we t
 - **zcash-devtool (main, 0b3436b):** a view-only wallet shows `Balance: 0.3 TAZ` with `Ironwood Spendable: 0` and `pczt create` says `Insufficient balance (have 0 ...)` until the funding note has about ten confirmations. Expected: the balance output to say how many confirmations are missing. Each cycle (spend, wait for change to confirm) costs five to eight minutes on testnet, which shaped our demo pacing.
 - **zcash-devtool `pczt create`:** the recipient in the resulting PCZT is the raw Orchard/Ironwood receiver, so a co-signer that re-encodes it gets a different unified address string from the one the payer typed. Any allow-list must match by receiver (we did). Worth a line in the PCZT docs.
 - **frost-zec (prototype, MIT):** excellent base; the co-signer verifies the PCZT on its own. The daemon mode we added needed one fix: a second session must not clear the exchange directory until the coordinator has collected the reply (we hit the race on the first run). Its `cosign` reads the human's approval from stdin, so a policy hook had to go in beside it rather than around it.
+- **zcash-devtool opens `/dev/tty`:** run from a service with no controlling terminal (nohup, setsid, a web server's child process), even `wallet balance` fails with `Error: Resource temporarily unavailable (os error 11)`. Expected: no terminal needed for non-interactive commands, or a clear message. Workaround: run it under `screen` or `script -qec "<cmd>" /dev/null`.
+- **zcash-devtool `inspect --lookup <txid>`** is a good public check of a shielded txid through the light wallet server: it prints the block, version and branch and nothing private. We used it on camera and behind the site's txid links when the explorer lagged.
 - **Rust toolchains:** zcash-devtool pins its own toolchain through `rust-toolchain.toml` and downloaded it on first build; two Rust toolchains and about 25 minutes of compiling on a 6-core VPS before the first PCZT. The brief's "start the build first" advice is right.
 
 ## Nym

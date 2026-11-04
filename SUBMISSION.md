@@ -1,6 +1,12 @@
-# Stadium submission draft (Adil submits; nothing here is sent automatically)
+# Stadium submission
 
-Submit at https://stadium.joinwebzero.com/programs/free-society-hack-2026 with the Luma email. Save a draft early, submit the event feedback form, then click **Finalize and submit** by Wed 4 Nov 20:00 IST for the evening judging session. Editable until 00:00.
+Submitted by Adil on Stadium (https://stadium.joinwebzero.com/programs/free-society-hack-2026) on 4 Nov 2026, before the 20:00 IST finalize deadline, for both tracks. Stadium's txid check marked the testnet transaction verified at 20:06 IST. The sections below are the values as saved there, checked against Stadium's public API at about 21:30 IST.
+
+## Description (max 500 characters)
+
+Ironclad gives an AI agent a shielded Zcash wallet it can't overspend. The wallet is a 2-of-3 FROST group: the agent holds one key share, a policy co-signer holds another, and the owner keeps the third offline. The co-signer only signs payments inside the owner's rules (per-payment cap, daily budget, allowed recipients), so a prompt-injected agent can't move money outside them. The agent buys top-ups through Bitrefill's live API (a test top-up in the demo), with shielded memos.
+
+(482 characters)
 
 ## Track
 
@@ -75,8 +81,12 @@ Reused: `@bitrefill/cli` for catalog and prices; the REST v2 shapes from the bri
 
 ## Real purchase invoice id
 
-57eeb022-02b6-4fd8-b60c-b15af9610e64 (test-phone-refill via the full loop; shielded payment 67c238aedf77ac1887a14400768f220a6ca2c2514f7063622493770b43f6408c, receipt memo 8c7f4d5380be3b0f808c89b26c67e100d0ff90939b8836017e14e805577067a0). Paid Airtel top-up invoice: add when credits arrive.
+f547c32c-3f91-40e8-a541-1483653bf049, the purchase in the demo video (test-phone-refill through the full loop; shielded payment 9b46cda814382b444dc963ef5000ed3db6b70c83ed1f62bbd571c89364305974, mined in block 4,582,029). Earlier one: 57eeb022-02b6-4fd8-b60c-b15af9610e64 (shielded payment 67c238aedf77ac1887a14400768f220a6ca2c2514f7063622493770b43f6408c, receipt memo 8c7f4d5380be3b0f808c89b26c67e100d0ff90939b8836017e14e805577067a0). No paid Airtel top-up: no event credits reached the account.
+
+## Links to anything already started
+
+https://github.com/OpenPGP-Wallet/frost-zec/issues/1
 
 ## Demo day contact
 
-Adil's Telegram or WhatsApp (fill in).
+Given on Stadium (not shown publicly).
