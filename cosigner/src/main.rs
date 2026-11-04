@@ -479,10 +479,17 @@ fn cosign_daemon(args: &[String]) -> Result<(), Box<dyn Error>> {
     if option(args, "--policy").is_none() {
         return Err("--policy FILE is required for the daemon".into());
     }
+    let dir = PathBuf::from(option(args, "--dir").unwrap_or(SESSION_DIR));
     loop {
         match cosign(args) {
             Ok(()) => println!("[daemon] session done"),
             Err(e) => println!("[daemon] session ended: {e}"),
+        }
+        // Give the coordinator time to collect the reply before the next
+        // session clears the directory; it deletes the reply when it is done.
+        let started = std::time::Instant::now();
+        while session::path(&dir, session::REPLY).exists() && started.elapsed() < std::time::Duration::from_secs(120) {
+            std::thread::sleep(std::time::Duration::from_millis(200));
         }
     }
 }
