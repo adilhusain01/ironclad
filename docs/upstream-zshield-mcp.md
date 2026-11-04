@@ -1,4 +1,4 @@
-# Ready branch for Steeve-Crypto/zshield-mcp (Adil forks and pushes; nothing is sent automatically)
+# zshield-mcp PR (opened 2026-11-04: https://github.com/Steeve-Crypto/zshield-mcp/pull/4, from the fork adilhusain01/zshield-mcp)
 
 Steeve's good first issue in the Builder Pack: "replace zshield-mcp's stubbed chain layer with a real testnet backend". The branch `zkool-backend` in `/root/Projects/mine/zcash/.tools/zshield-mcp` on the VPS adds a `CHAIN_MODE=zkool` backend: real testnet payments through a running zkool_graphql server (release binary, no Rust build), testnet checks on both the recipient and the wallet's own address, tests with an injected GraphQL runner, and a README section. All existing tests pass with it.
 
