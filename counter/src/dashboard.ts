@@ -7,7 +7,7 @@
 //   POST /api/demo    { kind: "buy" | "overcap" | "unknown" }  (one per 45 s)
 
 import { execFile } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { promisify } from "node:util";
 
@@ -102,6 +102,15 @@ createServer(async (req, res) => {
   if (req.method === "GET" && url.pathname === "/") {
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     return res.end(html());
+  }
+  if (req.method === "GET" && url.pathname === "/demo.mp4") {
+    const file = env("DEMO_VIDEO", "/root/Projects/mine/zcash/.wallets/demo.mp4");
+    if (!existsSync(file)) {
+      res.writeHead(404);
+      return res.end("no video yet");
+    }
+    res.writeHead(200, { "content-type": "video/mp4", "content-length": statSync(file).size, "cache-control": "public, max-age=300" });
+    return createReadStream(file).pipe(res);
   }
   if (req.method === "GET" && url.pathname === "/api/state") {
     res.writeHead(200, { "content-type": "application/json" });
