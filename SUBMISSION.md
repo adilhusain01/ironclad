@@ -24,9 +24,9 @@ agent
 
 https://vps.tail865d46.ts.net:8443
 
-## Demo video length
+## Demo video
 
-(fill in; 2 to 3 minutes)
+URL: https://vps.tail865d46.ts.net:8443/demo.mp4 (or https://github.com/adilhusain01/ironclad/raw/main/docs/demo.mp4). Length: 2:29.
 
 ## Technologies (comma separated)
 

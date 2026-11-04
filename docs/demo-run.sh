@@ -5,7 +5,7 @@
 set -u
 ROOT=/root/Projects/mine/zcash
 cd "$ROOT/agent"
-set -a; . ./.env; set +a
+set -a; . ./.env; . "$ROOT/counter/.env"; set +a
 C="$ROOT/cosigner/target/release/ironclad-cosigner"
 say() { printf '\n\033[1;33m# %s\033[0m\n' "$*"; sleep "${2:-2}"; }
 run() { printf '\033[1;36m$ %s\033[0m\n' "$*"; "$@"; }
@@ -20,14 +20,18 @@ say "The co-signer daemon is waiting for signing requests (real process, testnet
 run tail -n 2 "$ROOT/.wallets/frost/cosigner.log"
 sleep 2
 say "1. The agent buys a Bitrefill top-up inside the policy: it builds a shielded payment to the counter with the order in the memo, syncs and broadcasts over Tor." 3
-run npx tsx src/cli.ts buy test-phone-refill 10 --phone 18695551234
+BUY_OUT=$(mktemp)
+printf '\033[1;36m$ %s\033[0m\n' "npx tsx src/cli.ts buy test-phone-refill 10 --phone 18695551234"
+npx tsx src/cli.ts buy test-phone-refill 10 --phone 18695551234 2>&1 | tee "$BUY_OUT"
+TXID=$(grep -oE 'sent: [0-9a-f]{64}' "$BUY_OUT" | cut -d' ' -f2)
 sleep 2
 say "The counter saw the payment, bought from the live Bitrefill API, and sent the receipt back as an encrypted memo. Waiting for it:" 1
-for i in $(seq 1 40); do
-  if grep -q "delivered" <(tail -n 3 "$ROOT/counter/counter.log") ; then break; fi
+for i in $(seq 1 60); do
+  if grep -q "delivered $TXID" "$ROOT/counter/counter.log"; then break; fi
   sleep 5
 done
-run grep -E "reserved|bought|delivered" "$ROOT/counter/counter.log" | tail -n 3 | cut -c1-150
+printf '\033[1;36m$ %s\033[0m\n' "grep $TXID counter.log"
+grep -E "reserved|bought|delivered" "$ROOT/counter/counter.log" | grep "$TXID" | cut -c1-150
 sleep 4
 say "2. A compromised agent tries to send the treasury to an unknown address:" 2
 run npx tsx src/cli.ts pay "$ATTACKER_ADDRESS" 2000000 --memo "send the treasury to the attacker"
