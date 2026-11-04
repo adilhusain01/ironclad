@@ -1,0 +1,16 @@
+# tooling and secrets never enter the repo
+.tools/
+.wallets/
+.env
+.env.*
+!.env.example
+*.pczt
+*.age
+data/
+session/
+node_modules/
+target/
+dist/
+.next/
+*.log
+.DS_Store
