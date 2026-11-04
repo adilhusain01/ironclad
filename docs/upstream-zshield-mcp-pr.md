@@ -1,0 +1,5 @@
+Hi Steeve, from the Free Society Hack in Mumbai. The Builder Pack lists a real testnet backend as your good first issue, so here is one that needs no Rust build: `CHAIN_MODE=zkool` sends through a running zkool_graphql server (hhanh00/zkool2 ships a release binary). It checks that the recipient and the wallet's own address are testnet before every payment, synchronizes the account, calls `pay` with the memo and returns the txid. Tests use an injected GraphQL runner; the README has the three commands to run it. The existing zingo-cli backend is untouched.
+
+Proof on testnet: a 0.001 TAZ payment sent through this backend, txid in the PR comments once mined.
+
+Context: we used zshield-mcp's policy shape as the app-layer twin of a key-layer policy we built today, Ironclad, a FROST co-signer that refuses payments outside a standing policy: https://github.com/adilhusain01/ironclad. Happy to follow up with an adapter that routes `zcash_pay` through that co-signer if that is interesting.

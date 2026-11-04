@@ -84,7 +84,7 @@ Manual steps: none in the core flow. The owner's approval of an over-policy paym
 ## Next 30 days
 
 - Upstream the policy hook to frost-zec as an optional co-signer mode (draft issue text in `docs/upstream-frost-zec.md`; posting is Adil's call).
-- Offer the daemon as the real chain layer behind zshield-mcp's `zcash_pay`, which its maintainer listed as the open first issue.
+- zshield-mcp: a ready branch adds a zkool_graphql testnet backend (its maintainer's listed good first issue), with tests; the PR text is in `docs/upstream-zshield-mcp.md`. Next, an adapter that routes its `zcash_pay` through the Ironclad co-signer.
 - Memo rules inside the co-signer; a second-machine deployment; the Nym transport for the daemon.
 - Pilot: a household top-up policy running for a month on testnet, then mainnet with a tiny budget once FROST keys for Ironwood have a published spec (Khadim's and Zafe's shared backup format thread).
 
