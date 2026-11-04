@@ -8,6 +8,7 @@
 
 import { execFileSync, spawn } from "node:child_process";
 import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
+import { extname, join, normalize } from "node:path";
 import { createServer } from "node:http";
 const env = (k: string, fallback: string) => process.env[k] ?? fallback;
 
@@ -19,6 +20,19 @@ const COUNTER_ADDRESS = env("COUNTER_ADDRESS", "");
 const GROUP_ADDRESS = env("GROUP_ADDRESS", "");
 const DEMO_PHONE = env("DEMO_PHONE", "919999999999");
 const PORT = Number(env("DASHBOARD_PORT", "8795"));
+// The public site (web/, built with npm run build). When it is there it replaces the plain page below.
+const WEB_DIST = env("WEB_DIST", "../web/dist");
+const TYPES: Record<string, string> = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".woff2": "font/woff2", ".txt": "text/plain", ".json": "application/json" };
+
+function serveSite(path: string, res: import("node:http").ServerResponse): boolean {
+  if (!existsSync(join(WEB_DIST, "index.html"))) return false;
+  const file = normalize(join(WEB_DIST, path === "/" ? "index.html" : path));
+  if (!file.startsWith(normalize(WEB_DIST)) || !existsSync(file) || !statSync(file).isFile()) return false;
+  const cache = path.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-cache";
+  res.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream", "cache-control": cache });
+  createReadStream(file).pipe(res);
+  return true;
+}
 
 let lastDemo = 0;
 let demoLog: { at: string; kind: string; out: string }[] = [];
@@ -136,6 +150,7 @@ createServer(async (req, res) => {
     res.writeHead(204, { ...CORS, "access-control-max-age": "86400" });
     return res.end();
   }
+  if (req.method === "GET" && !url.pathname.startsWith("/api/") && url.pathname !== "/demo.mp4" && serveSite(url.pathname, res)) return;
   if (req.method === "GET" && url.pathname === "/") {
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     return res.end(html());
