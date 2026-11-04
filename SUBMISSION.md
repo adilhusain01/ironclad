@@ -87,6 +87,7 @@ f547c32c-3f91-40e8-a541-1483653bf049, the purchase in the demo video (test-phone
 
 https://github.com/OpenPGP-Wallet/frost-zec/issues/1
 https://github.com/Steeve-Crypto/zshield-mcp/pull/4
+https://forum.zcashcommunity.com/t/what-are-you-building-on-zcash/55172/49
 
 ## Demo day contact
 
