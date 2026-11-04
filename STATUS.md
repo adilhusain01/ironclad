@@ -1,8 +1,9 @@
 # Ironclad status
 
-Updated 2026-11-04 14:05 IST (VPS session).
+Updated 2026-11-04 15:05 IST (VPS session).
 
 ## Done
+- Real Bitrefill API live on the counter (key in `counter/.env`): ping ok, test products visible, a free `test-phone-refill` bought and delivered directly (invoice `5c0caefc-0c4d-4ded-88a3-1f08870b56f4`). REST prices are satoshis on this account and invoices go `not_delivered` then `all_delivered`; the counter handles both.
 - The agent's sync and broadcast go through zcash-devtool's built-in Tor (`DEVTOOL_CONNECTION=tor`); purchase over Tor mined: `1cbec807f17289bf99254581c051fce9d62bf4ac182b33ec41820c3c7605f4ab`. Nym: nym-proxy built and tried, the exit never reached testnet.zec.rocks (FEEDBACK.md); ask Max whether a credit or an allow-list entry fixes it.
 - Builder Pack sub-pages read in full; README and SUBMISSION say which parts belong to which track; Drongo Labs' Swaraj noted as related work (talk to ZKryptosaurus at the venue).
 - Refusals proven on testnet: an unknown recipient and an over-cap payment are refused at the key (ledger entries `refuse`, no broadcast).
@@ -18,6 +19,7 @@ Updated 2026-11-04 14:05 IST (VPS session).
 - Tooling builds.
 
 ## Blocked or needs Adil
+- Event credits: the account balance is 0 BTC. The REST catalog lists Airtel India only at ₹500 (7,021 sats, about $5.5) and ₹1,000, so the one paid purchase needs at least that much credit; ask Bitrefill to load credits, then run `cd agent && npx tsx src/cli.ts buy airtel-india 500 --phone 91<your number>`.
 - Push the ready zshield-mcp branch (Steeve's good first issue, a zkool_graphql backend with tests): commands in `docs/upstream-zshield-mcp.md`. This is the strongest Continuing evidence; link the PR in the next-milestone field.
 - Switch the counter to the real Bitrefill once you have the key: put `BITREFILL_API_KEY=...` and `BITREFILL_BASE_URL=https://api.bitrefill.com/v2` in `counter/.env`, kill the counter (`kill $(cat counter/counter.pid)`), run `scripts/start-all.sh`; then one real purchase: `cd agent && npx tsx src/cli.ts buy airtel-india 10 --phone 91<your number>`; record the invoice id from `counter/orders.json` in README.md and SUBMISSION.md.
 - All three judge buttons on the public page were verified through the API (buy delivered; over-cap and unknown recipient refused). The group wallet needs about ten confirmations between spends from the same note; four extra float notes are being added so several demos can run back to back.
