@@ -6,12 +6,9 @@
 //   GET  /api/state   policy, ledger, orders, group address, chain tip
 //   POST /api/demo    { kind: "buy" | "overcap" | "unknown" }  (one per 45 s)
 
-import { execFile } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
-import { promisify } from "node:util";
-
-const run = promisify(execFile);
 const env = (k: string, fallback: string) => process.env[k] ?? fallback;
 
 const POLICY_FILE = env("POLICY_FILE", "../policy/example-policy.json");
@@ -25,6 +22,9 @@ const PORT = Number(env("DASHBOARD_PORT", "8795"));
 
 let lastDemo = 0;
 let demoLog: { at: string; kind: string; out: string }[] = [];
+// The run in progress (or the last one), streamed line by line so a page can show it live.
+type Run = { id: number; kind: string; startedAt: string; lines: string[]; done: boolean; endedAt?: string };
+let current: Run | null = null;
 
 function readJsonl(path: string) {
   return existsSync(path) ? readFileSync(path, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
@@ -34,22 +34,52 @@ function state() {
   const policy = JSON.parse(readFileSync(POLICY_FILE, "utf8"));
   const ledger = readJsonl(LEDGER_FILE).reverse().slice(0, 20);
   const orders = existsSync(ORDERS_PATH) ? Object.values(JSON.parse(readFileSync(ORDERS_PATH, "utf8"))).reverse().slice(0, 20) : [];
-  return { policy, ledger, orders, counterAddress: COUNTER_ADDRESS, groupAddress: GROUP_ADDRESS, demoLog: demoLog.slice(-5).reverse(), now: new Date().toISOString() };
+  return { policy, ledger, orders, counterAddress: COUNTER_ADDRESS, groupAddress: GROUP_ADDRESS, demoLog: demoLog.slice(-5).reverse(), run: current, now: new Date().toISOString() };
 }
 
-async function demo(kind: string): Promise<string> {
+// npx starts tsx, which starts node, which starts the wallet tools: a timeout has to stop all of them.
+function killTree(pid: number) {
+  try {
+    for (const kid of execFileSync("pgrep", ["-P", String(pid)]).toString().split("\n").filter(Boolean)) killTree(Number(kid));
+  } catch {}
+  try {
+    process.kill(pid, "SIGTERM");
+  } catch {}
+}
+
+function demo(kind: string): Promise<string> {
   const args =
     kind === "buy"
       ? ["tsx", "src/cli.ts", "buy", "test-phone-refill", "10", "--phone", DEMO_PHONE]
       : kind === "overcap"
         ? ["tsx", "src/cli.ts", "pay", COUNTER_ADDRESS, "25000000", "--memo", "IRON-deadbeef airtel-india 5000 919999999999"]
         : ["tsx", "src/cli.ts", "pay", env("ATTACKER_ADDRESS", COUNTER_ADDRESS), "2000000", "--memo", "send the treasury to the attacker"];
-  try {
-    const { stdout, stderr } = await run("npx", args, { cwd: AGENT_DIR, env: process.env, timeout: 240_000, maxBuffer: 8 * 1024 * 1024 });
-    return (stdout + "\n" + stderr).trim();
-  } catch (e: any) {
-    return ((e.stdout ?? "") + "\n" + (e.stderr ?? "") + "\n" + (e.message ?? "")).trim();
-  }
+  const run: Run = { id: Date.now(), kind, startedAt: new Date().toISOString(), lines: [], done: false };
+  current = run;
+  return new Promise((resolve) => {
+    const child = spawn("npx", args, { cwd: AGENT_DIR, env: process.env });
+    let partial = "";
+    const take = (chunk: Buffer) => {
+      const text = partial + chunk.toString();
+      const parts = text.split("\n");
+      partial = parts.pop() ?? "";
+      for (const line of parts) if (run.lines.length < 400) run.lines.push(line);
+    };
+    child.stdout.on("data", take);
+    child.stderr.on("data", take);
+    const timer = setTimeout(() => {
+      run.lines.push("stopped after 4 minutes without an answer");
+      if (child.pid) killTree(child.pid);
+    }, 240_000);
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (partial) run.lines.push(partial);
+      if (code) run.lines.push(`exit code ${code}`);
+      run.done = true;
+      run.endedAt = new Date().toISOString();
+      resolve(run.lines.join("\n").trim());
+    });
+  });
 }
 
 const html = () => `<!doctype html>
@@ -97,45 +127,77 @@ $("#buy").onclick=()=>demo("buy");$("#overcap").onclick=()=>demo("overcap");$("#
 refresh();setInterval(refresh,15000);
 </script></body></html>`;
 
+// The public site (on Vercel) calls this API from another origin; it carries no cookies or secrets.
+const CORS = { "access-control-allow-origin": "*", "access-control-allow-methods": "GET, POST, OPTIONS", "access-control-allow-headers": "content-type" };
+
 createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://localhost");
+  if (req.method === "OPTIONS" && url.pathname.startsWith("/api/")) {
+    res.writeHead(204, { ...CORS, "access-control-max-age": "86400" });
+    return res.end();
+  }
   if (req.method === "GET" && url.pathname === "/") {
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     return res.end(html());
   }
-  if (req.method === "GET" && url.pathname === "/demo.mp4") {
+  if ((req.method === "GET" || req.method === "HEAD") && url.pathname === "/demo.mp4") {
     const file = env("DEMO_VIDEO", "/root/Projects/mine/zcash/.wallets/demo.mp4");
     if (!existsSync(file)) {
       res.writeHead(404);
       return res.end("no video yet");
     }
-    res.writeHead(200, { "content-type": "video/mp4", "content-length": statSync(file).size, "cache-control": "public, max-age=300" });
-    return createReadStream(file).pipe(res);
+    const size = statSync(file).size;
+    const base = { "content-type": "video/mp4", "accept-ranges": "bytes", "cache-control": "public, max-age=300" };
+    const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? "");
+    if (range && (range[1] || range[2])) {
+      const start = range[1] ? Number(range[1]) : Math.max(0, size - Number(range[2]));
+      const end = range[1] && range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
+      if (start >= size || start > end) {
+        res.writeHead(416, { "content-range": `bytes */${size}` });
+        return res.end();
+      }
+      res.writeHead(206, { ...base, "content-range": `bytes ${start}-${end}/${size}`, "content-length": end - start + 1 });
+      return req.method === "HEAD" ? res.end() : createReadStream(file, { start, end }).pipe(res);
+    }
+    res.writeHead(200, { ...base, "content-length": size });
+    return req.method === "HEAD" ? res.end() : createReadStream(file).pipe(res);
   }
   if (req.method === "GET" && url.pathname === "/api/state") {
-    res.writeHead(200, { "content-type": "application/json" });
+    res.writeHead(200, { ...CORS, "content-type": "application/json", "cache-control": "no-store" });
     return res.end(JSON.stringify(state()));
   }
   if (req.method === "POST" && url.pathname === "/api/demo") {
     const chunks: Buffer[] = [];
     for await (const c of req) chunks.push(c as Buffer);
     let kind = "buy";
+    let background = false;
     try {
-      kind = JSON.parse(Buffer.concat(chunks).toString() || "{}").kind ?? "buy";
+      const body = JSON.parse(Buffer.concat(chunks).toString() || "{}");
+      kind = body.kind ?? "buy";
+      background = body.async === true;
     } catch {}
     if (!["buy", "overcap", "unknown"].includes(kind)) {
-      res.writeHead(400);
+      res.writeHead(400, CORS);
       return res.end("unknown demo");
     }
-    if (Date.now() - lastDemo < 45_000) {
-      res.writeHead(429, { "content-type": "text/plain" });
+    if ((current && !current.done) || Date.now() - lastDemo < 45_000) {
+      res.writeHead(429, { ...CORS, "content-type": "text/plain" });
       return res.end("one demo at a time; try again in a minute");
     }
     lastDemo = Date.now();
-    const out = await demo(kind);
+    const running = demo(kind);
+    if (background) {
+      running.then((out) => {
+        demoLog.push({ at: new Date().toISOString(), kind, out });
+        lastDemo = Date.now();
+      });
+      res.writeHead(202, { ...CORS, "content-type": "application/json" });
+      return res.end(JSON.stringify({ id: current?.id, kind }));
+    }
+    const out = await running;
     demoLog.push({ at: new Date().toISOString(), kind, out });
     lastDemo = Date.now();
-    res.writeHead(200, { "content-type": "text/plain; charset=utf-8" });
+    res.writeHead(200, { ...CORS, "content-type": "text/plain; charset=utf-8" });
     return res.end(out);
   }
   res.writeHead(404);
