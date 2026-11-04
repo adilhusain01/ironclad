@@ -20,6 +20,10 @@ Written from notes kept from the first error on 4 November 2026. Area, what we t
 - **frost-zec (prototype, MIT):** excellent base; the co-signer verifies the PCZT on its own. The daemon mode we added needed one fix: a second session must not clear the exchange directory until the coordinator has collected the reply (we hit the race on the first run). Its `cosign` reads the human's approval from stdin, so a policy hook had to go in beside it rather than around it.
 - **Rust toolchains:** zcash-devtool pins its own toolchain through `rust-toolchain.toml` and downloaded it on first build; two Rust toolchains and about 25 minutes of compiling on a 6-core VPS before the first PCZT. The brief's "start the build first" advice is right.
 
+## Nym
+
+- We built zingolib's `nym-proxy` (the `nym` feature, 11 minutes) and it joined the mixnet and announced a SOCKS5 port and an exit node within seconds. zcash-devtool's `--connection socks5://127.0.0.1:<port>` then failed with `transport error` after 10 seconds, and a plain `curl --socks5-hostname` to `https://testnet.zec.rocks:443` never completed. Our reading: the exit's allow-list does not include the testnet light wallet server (mainnet `zec.rocks` is what the Zingo integration targets). Expected: either the connection to work or the proxy to report the refusal. zcash-devtool's built-in Tor (`--connection tor`) synced the same wallet in 13 seconds, so we shipped Tor and left Nym as the next step. The Nym Zcash SDK page says the dVPN needs NYM credentials; a testnet allow-list entry for `testnet.zec.rocks` would let hackathon teams try the mixnet without credits.
+
 ## Bitrefill
 
 - `search-products` needs `--intent`, which the CLI error says but the docs do not (the brief covers it).

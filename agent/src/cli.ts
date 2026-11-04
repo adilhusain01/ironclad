@@ -35,6 +35,9 @@ const COUNTER_ADDRESS = process.env.COUNTER_ADDRESS ?? "";
 const POLICY_FILE = env("POLICY_FILE", "../policy/example-policy.json");
 const LEDGER_FILE = env("LEDGER_FILE", "../.wallets/frost/ledger.jsonl");
 const AGENT_SHARE = env("AGENT_SHARE", "1");
+// "tor" routes the wallet's sync and broadcast through zcash-devtool's built-in Tor client,
+// so the light wallet server never sees this machine's address. "direct" for debugging.
+const CONNECTION = env("DEVTOOL_CONNECTION", "tor");
 
 function run(cmd: string, args: string[], opts: { cwd?: string; input?: Buffer; quiet?: boolean } = {}): Buffer {
   const r = spawnSync(cmd, args, { cwd: opts.cwd, input: opts.input, maxBuffer: 64 * 1024 * 1024 });
@@ -61,6 +64,8 @@ export function pay(address: string, zat: number, memo: string): string {
     const created = join(work, "created.pczt");
     const proven = join(work, "proven.pczt");
     const signed = join(work, "signed.pczt");
+    console.log(`syncing the group wallet over ${CONNECTION}`);
+    run(DEVTOOL, ["wallet", "-w", GROUP_WALLET, "sync", "-s", "zecrocks", "--connection", CONNECTION], { quiet: true });
     console.log(`building a payment of ${zat} zat to ${address.slice(0, 14)}… with memo "${memo}"`);
     run(DEVTOOL, ["pczt", "-w", GROUP_WALLET, "create", "--address", address, "--value", String(zat), "--memo", memo, "--output", created], { quiet: true });
     console.log("proving (this takes a few seconds)");
@@ -69,8 +74,8 @@ export function pay(address: string, zat: number, memo: string): string {
     console.log(`asking the policy co-signer for its share (session ${SESSION_DIR})`);
     const out = run(COSIGNER, ["coordinate", "--as", AGENT_SHARE, "--dir", SESSION_DIR, "--pczt", proven, "--out", signed], { cwd: FROST_DATA_DIR });
     process.stdout.write(out);
-    console.log("broadcasting");
-    const sent = run(DEVTOOL, ["pczt", "-w", GROUP_WALLET, "send", "-s", "zecrocks"], { input: readFileSync(signed) }).toString();
+    console.log(`broadcasting over ${CONNECTION}`);
+    const sent = run(DEVTOOL, ["pczt", "-w", GROUP_WALLET, "send", "-s", "zecrocks", "--connection", CONNECTION], { input: readFileSync(signed), quiet: true }).toString();
     const txid = sent.match(/[0-9a-f]{64}/)?.[0] ?? sent.trim();
     console.log(`sent: ${txid}\nhttps://zexplorer.app/testnet/tx/${txid}`);
     return txid;
