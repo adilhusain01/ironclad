@@ -28,6 +28,7 @@ Updated 2026-11-04 14:05 IST (VPS session).
 - TAZ beyond the faucet (any Zcash mentor).
 
 ## Testnet evidence
+- Payment sent through the new zshield-mcp zkool backend (the ready upstream branch): `d0aad567233f0b349eac0a16fc7cbf4bb6bd70496ed2c291e2c896316824f9ca`.
 - FROST 2-of-3 shielded spend from the group wallet, co-signed by the policy daemon (policy allowed, ledger entry written), broadcast with zcash-devtool: txid `82457796b6d92643d6cfcade47716789a3c1ee72c9ebc77c27ccca592365e26a`, https://zexplorer.app/testnet/tx/82457796b6d92643d6cfcade47716789a3c1ee72c9ebc77c27ccca592365e26a (2026-11-04 12:19 IST). Group address `utest17rlcf2nujuu0yyczsq4vaeur7c6v7tqez3hqru22z3xq6d3ng6dysseqy8dr4d6q2k8re3rzuvewy5jvvcm8a2t0cgszkna3wcmr5hs7`, funded by `51c3d6397ecb8d1d45d346450748d110ea09dc0d2e73028f67f29339dd3f9101`.
 - Test order to the counter (mock Bitrefill bought it): `836e585f555e082cbf5d153ae530c65e17c542ae9c6cf6535613cf58c091c098`.
 - First shielded testnet payment (dev wallet to the counter, memo `IRON-first001 test-phone-refill 10 919999999999`): txid `b9e0fb62485e5acaceaa0ed6d74193133c06fb78d8867cba7ca7b23611880727`, https://zexplorer.app/testnet/tx/b9e0fb62485e5acaceaa0ed6d74193133c06fb78d8867cba7ca7b23611880727 (sent 2026-11-04 12:16 IST via zkool_graphql).
