@@ -24,6 +24,44 @@ const PORT = Number(env("DASHBOARD_PORT", "8795"));
 const WEB_DIST = env("WEB_DIST", "../web/dist");
 const TYPES: Record<string, string> = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".woff2": "font/woff2", ".txt": "text/plain", ".json": "application/json" };
 
+// A txid check through testnet.zec.rocks, the server Stadium uses. Public explorers lag behind
+// testnet at times (Zexplorer was about 76,000 blocks behind on 4 Nov 2026), so the site links here.
+const DEVTOOL = env("DEVTOOL", "../.tools/zcash-devtool/target/release/zcash-devtool");
+const looked: Map<string, string> = new Map();
+let lookups = 0;
+
+function lookup(txid: string): Promise<string> {
+  const known = looked.get(txid);
+  if (known) return Promise.resolve(known);
+  return new Promise((resolve) => {
+    // zcash-devtool opens /dev/tty, so it runs under script(1), which gives it one.
+    const child = spawn("script", ["-qec", `${DEVTOOL} inspect --lookup ${txid}`, "/dev/null"], { cwd: AGENT_DIR });
+    let out = "";
+    child.stdout.on("data", (chunk) => (out += chunk));
+    const timer = setTimeout(() => child.kill("SIGTERM"), 60_000);
+    child.on("close", () => {
+      clearTimeout(timer);
+      const text = out.replace(/\r/g, "").trim();
+      if (/Mined in testnet block \d+/.test(text)) looked.set(txid, text);
+      resolve(text || "No answer from the light wallet server.");
+    });
+  });
+}
+
+const escapeHtml = (text: string) => text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+
+function txPage(txid: string, result: string): string {
+  const block = /Mined in testnet block (\d+)/.exec(result)?.[1];
+  const verdict = block ? `Mined in Zcash testnet block ${Number(block).toLocaleString("en-US")}.` : "Not found on testnet right now.";
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Transaction ${txid.slice(0, 10)}… on Zcash testnet</title>
+<style>body{margin:0;background:#f9f5d7;color:#654735;font:16px/1.55 ui-sans-serif,system-ui,sans-serif}main{max-width:820px;margin:0 auto;padding:48px 20px}h1{font:600 26px/1.2 ui-monospace,monospace;margin:0 0 8px}p{margin:8px 0}code,pre{font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}pre{background:#1d2021;color:#d4be98;border-radius:10px;padding:14px 16px;white-space:pre-wrap;word-break:break-all}.ok{color:#5e6a24;font-weight:600}.no{color:#9f3838;font-weight:600}a{color:#9d5110}</style></head>
+<body><main><h1>Transaction check</h1><p><code>${txid}</code></p><p class="${block ? "ok" : "no"}">${verdict}</p>
+<p>Looked up just now through testnet.zec.rocks, the light wallet server Stadium uses, with <code>zcash-devtool inspect --lookup</code>. The chain shows the block and the transaction version. Sender, receiver, amounts and memos are shielded, so they don't appear here or anywhere else.</p>
+<pre>${escapeHtml(result)}</pre>
+<p>Public explorer: <a href="https://zexplorer.app/testnet/tx/${txid}">Zexplorer</a>. Its testnet index was running behind on 4 November 2026, so it can show "not found" for a mined transaction.</p>
+<p><a href="/">Back to Ironclad</a></p></main></body></html>`;
+}
+
 function serveSite(path: string, res: import("node:http").ServerResponse): boolean {
   if (!existsSync(join(WEB_DIST, "index.html"))) return false;
   const file = normalize(join(WEB_DIST, path === "/" ? "index.html" : path));
@@ -149,6 +187,17 @@ createServer(async (req, res) => {
   if (req.method === "OPTIONS" && url.pathname.startsWith("/api/")) {
     res.writeHead(204, { ...CORS, "access-control-max-age": "86400" });
     return res.end();
+  }
+  const tx = /^\/tx\/([0-9a-f]{64})$/.exec(url.pathname);
+  if (req.method === "GET" && tx) {
+    if (lookups >= 3) {
+      res.writeHead(429, { "content-type": "text/plain" });
+      return res.end("Too many lookups at once; try again in a few seconds.");
+    }
+    lookups += 1;
+    const result = await lookup(tx[1]!).finally(() => (lookups -= 1));
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
+    return res.end(txPage(tx[1]!, result));
   }
   if (req.method === "GET" && !url.pathname.startsWith("/api/") && url.pathname !== "/demo.mp4" && serveSite(url.pathname, res)) return;
   if (req.method === "GET" && url.pathname === "/") {

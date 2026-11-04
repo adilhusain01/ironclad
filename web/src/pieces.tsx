@@ -1,6 +1,7 @@
 // Small pieces used in more than one section. The copy key and theme switch follow HeyTerm's own.
 
 import { useState, type ReactNode } from "react";
+import { API_BASE } from "./api.ts";
 
 export const links = {
   github: "https://github.com/adilhusain01/ironclad",
@@ -135,7 +136,7 @@ export function SectionHeading({ title, children }: { title: string; children?: 
 export function TxLink({ txid, label }: { txid: string; label?: string }) {
   return (
     <a
-      href={`https://zexplorer.app/testnet/tx/${txid}`}
+      href={`${API_BASE}/tx/${txid}`}
       target="_blank"
       rel="noreferrer"
       className="inline-flex items-center gap-1 rounded-tiny font-mono text-accent-ink underline decoration-line-strong underline-offset-3 hover:decoration-accent"
