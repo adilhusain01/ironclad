@@ -1,6 +1,6 @@
 # Ironclad status
 
-Updated 2026-11-04 15:05 IST (VPS session).
+Updated 2026-11-04 15:50 IST (VPS session).
 
 ## Done
 - Demo video recorded for real (asciinema, 2:29): https://vps.tail865d46.ts.net:8443/demo.mp4 and docs/demo.mp4. Repo is public.
@@ -20,13 +20,13 @@ Updated 2026-11-04 15:05 IST (VPS session).
 - Tooling builds.
 
 ## Blocked or needs Adil
+- Pushing from the VPS: use `.tools/push.sh` (plain `git push` gets an Internal Server Error from GitHub on this repo since it went public).
 - Event credits: the account balance is 0 BTC. The REST catalog lists Airtel India only at ₹500 (7,021 sats, about $5.5) and ₹1,000, so the one paid purchase needs at least that much credit; ask Bitrefill to load credits, then run `cd agent && npx tsx src/cli.ts buy airtel-india 500 --phone 91<your number>`.
 - Push the ready zshield-mcp branch (Steeve's good first issue, a zkool_graphql backend with tests): commands in `docs/upstream-zshield-mcp.md`. This is the strongest Continuing evidence; link the PR in the next-milestone field.
 - Switch the counter to the real Bitrefill once you have the key: put `BITREFILL_API_KEY=...` and `BITREFILL_BASE_URL=https://api.bitrefill.com/v2` in `counter/.env`, kill the counter (`kill $(cat counter/counter.pid)`), run `scripts/start-all.sh`; then one real purchase: `cd agent && npx tsx src/cli.ts buy airtel-india 10 --phone 91<your number>`; record the invoice id from `counter/orders.json` in README.md and SUBMISSION.md.
 - All three judge buttons on the public page were verified through the API (buy delivered; over-cap and unknown recipient refused). The group wallet needs about ten confirmations between spends from the same note; four extra float notes are being added so several demos can run back to back.
 - Post the frost-zec issue (`docs/upstream-frost-zec.md`) and a line in the forum thread "What are you building on Zcash?" (55172): public actions, Adil's call.
 - Record the demo video (script in `docs/demo-script.md`).
-- Make the repo public before finalizing on Stadium.
 - Bitrefill API key and event credits (ask Max N, Ankush Mehta or Aamir Shaikh at the venue).
 - TAZ beyond the faucet (any Zcash mentor).
 
