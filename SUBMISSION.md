@@ -49,7 +49,7 @@ The group wallet's UFVK and birth height 4581180: run `ironclad-cosigner info` i
 
 ## Next milestone (30 days) and links
 
-Upstream the policy co-signer mode to frost-zec and offer it as the real chain layer behind zshield-mcp's `zcash_pay`; run one household top-up policy for a month on testnet. Links: https://github.com/adilhusain01/ironclad (this repo), the zshield-mcp PR (add the link after pushing the `zkool-backend` branch, see `docs/upstream-zshield-mcp.md`), the draft upstream text in `docs/upstream-frost-zec.md`, zshield-mcp issue #3 (Steeve's "Phase 1 tools and hardening"), frost-zec's ZCG thread (forum 58172). Add the forum post link once posted.
+Upstream the policy co-signer mode to frost-zec and offer it as the real chain layer behind zshield-mcp's `zcash_pay`; run one household top-up policy for a month on testnet. Links: https://github.com/adilhusain01/ironclad (this repo), the zshield-mcp PR (add the link after pushing the `zkool-backend` branch, see `docs/upstream-zshield-mcp.md`), the frost-zec issue proposing the policy mode (https://github.com/OpenPGP-Wallet/frost-zec/issues/1), zshield-mcp issue #3 (Steeve's "Phase 1 tools and hardening"), frost-zec's ZCG thread (forum 58172). Add the forum post link once posted.
 
 ## Feedback for the Zcash teams (optional)
 

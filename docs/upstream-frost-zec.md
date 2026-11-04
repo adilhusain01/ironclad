@@ -1,4 +1,4 @@
-# Draft issue for OpenPGP-Wallet/frost-zec (Adil posts it; not sent automatically)
+# Issue for OpenPGP-Wallet/frost-zec (posted 2026-11-04: https://github.com/OpenPGP-Wallet/frost-zec/issues/1)
 
 Title: A policy mode for the co-signer: refuse anything outside a standing spending policy
 
