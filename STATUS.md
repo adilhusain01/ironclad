@@ -1,8 +1,10 @@
 # Ironclad status
 
-Updated 2026-11-04 12:55 IST (VPS session).
+Updated 2026-11-04 13:40 IST (VPS session).
 
 ## Done
+- The agent's sync and broadcast go through zcash-devtool's built-in Tor (`DEVTOOL_CONNECTION=tor`); purchase over Tor mined: `1cbec807f17289bf99254581c051fce9d62bf4ac182b33ec41820c3c7605f4ab`. Nym: nym-proxy built and tried, the exit never reached testnet.zec.rocks (FEEDBACK.md); ask Max whether a credit or an allow-list entry fixes it.
+- Builder Pack sub-pages read in full; README and SUBMISSION say which parts belong to which track; Drongo Labs' Swaraj noted as related work (talk to ZKryptosaurus at the venue).
 - Refusals proven on testnet: an unknown recipient and an over-cap payment are refused at the key (ledger entries `refuse`, no broadcast).
 - Public dashboard live at https://vps.tail865d46.ts.net:8443 (Tailscale Funnel on 8443) with three judge buttons.
 - MCP server for Claude Desktop or Cursor (`agent/src/mcp.ts`), README with the trust note, SUBMISSION.md, FEEDBACK.md, draft upstream issue for frost-zec.
