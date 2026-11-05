@@ -97,6 +97,9 @@
   padding: 2vh 3vw;
   zoom: 1.25;
 }
+.demo-panel:fullscreen .term-body {
+  height: 52vh;
+}
 .demo-panel::backdrop {
   background: var(--color-paper);
 }
