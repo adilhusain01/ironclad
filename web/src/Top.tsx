@@ -33,10 +33,10 @@ export function TopBar() {
 export function Hero({ live }: { live: ReturnType<typeof useLive> }) {
   return (
     <section className="pt-10 pb-20 sm:pt-16">
-      <h1 className={`max-w-[14ch] ${heading.hero}`}>A Zcash wallet your agent can't overspend.</h1>
+      <h1 className={`max-w-[14ch] ${heading.hero}`}>Spending limits for AI agents, built into the key.</h1>
       <div className="mt-8 grid items-end gap-x-14 gap-y-8 lg:grid-cols-[minmax(0,1fr)_auto]">
         <p className="max-w-[56ch] text-[1.15rem] leading-[1.6] text-ink-soft">
-          The key is split three ways with FROST. The agent holds one share, a co-signer holds the second, and you keep the third offline. The co-signer only signs payments inside your rules, whatever the agent is told. On Zcash testnet, buying phone top-ups through Bitrefill.
+          Ironclad guards a private Zcash wallet that an AI agent spends from. The key is split three ways: the agent holds one share, a co-signer holds the second with your rules, and you keep the third offline. Outside your rules, a payment can't be signed, whatever the agent is told.
         </p>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <a href="#try" className={button.primary}>
