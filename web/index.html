@@ -2,6 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- /ironclad without its slash would load files from the server root: add the slash first. -->
+    <script>if (/\/ironclad$/.test(location.pathname)) location.replace(location.pathname + "/" + location.search + location.hash);</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light" />
     <meta name="theme-color" content="#eef0ec" />
