@@ -1,6 +1,6 @@
 // What the page tells a visitor after a run, read from the agent's real output lines.
 import { describe, expect, it } from "vitest";
-import { outcomeOf, spentTodayZat, tidyLine } from "./run.ts";
+import { outcomeOf, spentTodayZat, stepsOf, tidyLine } from "./run.ts";
 
 const sent = [
   "syncing the group wallet over tor",
@@ -61,5 +61,33 @@ describe("spentTodayZat", () => {
 describe("tidyLine", () => {
   it("drops the server's folder from paths", () => {
     expect(tidyLine("asking the policy co-signer for its share (session /root/Projects/mine/zcash/.wallets/frost/session)")).toBe("asking the policy co-signer for its share (session .wallets/frost/session)");
+  });
+});
+
+describe("stepsOf", () => {
+  const refusedRun = { done: true, kind: "overcap" as const, lines: ["syncing the group wallet over tor", 'building a payment of 25000000 zat to utest1u2gz0d9q… with memo "x"', "proving (this takes a few seconds)", "asking the policy co-signer for its share (session s)", "error: the co-signer refused to sign: policy: 25000000 zat to Ironclad counter (Bitrefill fulfilment, testnet) is above the per-payment cap of 20000000 zat", "exit code 1"] };
+  const sentRun = { done: true, kind: "buy" as const, lines: [...sent] };
+
+  it("walks a refused payment to a refusal and stops there", () => {
+    expect(stepsOf(refusedRun, []).map((s) => [s.key, s.state])).toEqual([
+      ["sync", "done"], ["build", "done"], ["prove", "done"], ["ask", "done"], ["sign", "refused"],
+    ]);
+  });
+
+  it("walks a purchase through signing and sending, then waits for the counter", () => {
+    expect(stepsOf(sentRun, []).map((s) => [s.key, s.state])).toEqual([
+      ["sync", "done"], ["build", "done"], ["prove", "done"], ["ask", "done"], ["sign", "done"], ["send", "done"], ["deliver", "active"],
+    ]);
+  });
+
+  it("marks the purchase delivered once the counter's order is", () => {
+    const order = { txid: "3803168077947d4f50cad83ddf4aaf17ce83451dba578fa4c2da4f008e0f4087", status: "delivered" };
+    expect(stepsOf(sentRun, [order]).at(-1)).toMatchObject({ key: "deliver", state: "done" });
+  });
+
+  it("shows the step in progress while a run is going", () => {
+    expect(stepsOf({ done: false, kind: "buy", lines: sent.slice(0, 2) }, []).map((s) => [s.key, s.state])).toEqual([
+      ["sync", "done"], ["build", "active"], ["prove", "todo"], ["ask", "todo"], ["sign", "todo"], ["send", "todo"], ["deliver", "todo"],
+    ]);
   });
 });

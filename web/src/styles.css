@@ -89,6 +89,18 @@
   scale: 0.97;
 }
 
+/* The live demo, full screen on a stage: the panel fills the screen on paper, a quarter larger. */
+.demo-panel:fullscreen {
+  background: var(--color-paper);
+  border: 0;
+  border-radius: 0;
+  padding: 2vh 3vw;
+  zoom: 1.25;
+}
+.demo-panel::backdrop {
+  background: var(--color-paper);
+}
+
 /* The caret at the end of a running terminal. */
 @keyframes caret-blink {
   0%,
