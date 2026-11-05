@@ -12,7 +12,7 @@ const asks: { kind: DemoKind; title: string; line: string; command: string }[] =
   { kind: "unknown", title: "Pay a stranger", line: "An address that isn't on your list", command: "ironclad pay <stranger> 0.02 TAZ" },
 ];
 
-const COOLDOWN_MS = 45_000;
+const COOLDOWN_MS = 5_000;
 
 export function Console({ state, error, refresh }: { state: State | null; error: string | null; refresh: () => void }) {
   const [message, setMessage] = useState<string | null>(null);

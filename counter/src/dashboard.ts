@@ -244,7 +244,7 @@ createServer(async (req, res) => {
       res.writeHead(400, CORS);
       return res.end("unknown demo");
     }
-    if ((current && !current.done) || Date.now() - lastDemo < 45_000) {
+    if ((current && !current.done) || Date.now() - lastDemo < 5_000) {
       res.writeHead(429, { ...CORS, "content-type": "text/plain" });
       return res.end("one demo at a time; try again in a minute");
     }
