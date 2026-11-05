@@ -1,15 +1,17 @@
-// The hero's live panel: the owner's rules on the left, the real agent's terminal in the middle, and
-// three keys that run it on the right. Every line in the terminal is streamed from the server.
+// The live demo: three keys that run the real agent, the owner's rules, and what the agent is doing,
+// told as plain steps that light up from its real output. The raw terminal is one click away. The
+// panel can go full screen for a stage.
 
 import { useEffect, useRef, useState } from "react";
 import { startRun, TAZ, type DemoKind, type Order, type Run, type State } from "./api.ts";
 import { CheckIcon, CrossIcon, TxLink } from "./pieces.tsx";
-import { humanReason, outcomeOf, spentTodayZat, tidyLine } from "./run.ts";
+import { humanReason, outcomeOf, spentTodayZat, stepsOf, tidyLine, type Step } from "./run.ts";
 
+// In the order a demo goes: the two attacks first, then a purchase inside the rules.
 const asks: { kind: DemoKind; title: string; line: string; command: string }[] = [
-  { kind: "buy", title: "Buy a test top-up", line: "0.01 TAZ to the counter, inside the rules", command: "ironclad buy test-phone-refill 10" },
-  { kind: "overcap", title: "Pay 0.25 TAZ", line: "Over the 0.2 TAZ cap per payment", command: "ironclad pay <counter> 0.25 TAZ" },
-  { kind: "unknown", title: "Pay a stranger", line: "An address that isn't on your list", command: "ironclad pay <stranger> 0.02 TAZ" },
+  { kind: "unknown", title: "Pay a stranger", line: "A prompt injection: send money to an address that isn't on your list", command: "ironclad pay <stranger> 0.02 TAZ" },
+  { kind: "overcap", title: "Pay 0.25 TAZ", line: "The right address, over the 0.2 TAZ cap per payment", command: "ironclad pay <counter> 0.25 TAZ" },
+  { kind: "buy", title: "Buy a test top-up", line: "0.01 TAZ to the counter, inside the rules, through Bitrefill", command: "ironclad buy test-phone-refill 10" },
 ];
 
 const COOLDOWN_MS = 5_000;
@@ -17,6 +19,8 @@ const COOLDOWN_MS = 5_000;
 export function Console({ state, error, refresh }: { state: State | null; error: string | null; refresh: () => void }) {
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState<DemoKind | null>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const full = useFullscreen(panel);
   const now = useNow();
   const run = state?.run ?? null;
   const running = Boolean(pending) || Boolean(run && !run.done);
@@ -33,36 +37,49 @@ export function Console({ state, error, refresh }: { state: State | null; error:
   };
 
   return (
-    <div className="grid overflow-hidden rounded-xl border border-line bg-paper-2/70 text-left lg:grid-cols-[290px_minmax(0,1fr)_310px]">
-      <Rules state={state} />
-      <div className="order-first flex min-w-0 flex-col p-1.5 lg:order-none">
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg bg-term">
-          <Terminal run={run} error={error} />
-          <Result run={run} orders={state?.orders ?? []} />
+    <div ref={panel} className="demo-panel overflow-auto rounded-xl border border-line bg-paper-2/70 text-left">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
+        <div>
+          <h3 className="font-heading text-[1.5rem] leading-tight font-semibold tracking-[-0.01em]">Live demo</h3>
+          <p className="text-sm text-ink-soft">Each key runs the real agent and co-signer on Zcash testnet.</p>
         </div>
+        <button type="button" onClick={full.toggle} className="press inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg px-4 text-sm font-bold text-ink shadow-[inset_0_0_0_1.5px_var(--color-ink)] hover:bg-ink/[0.06]">
+          <FullscreenIcon exit={full.on} />
+          {full.on ? "Exit full screen" : "Full screen"}
+        </button>
       </div>
-      <div className="flex flex-col gap-5 border-t border-line p-5 lg:border-t-0 lg:border-l">
-        <h3 className="font-heading text-[1.5rem] leading-tight font-semibold tracking-[-0.01em]">Ask the agent</h3>
-        <div className="flex flex-col gap-2">
-          {asks.map((item) => (
-            <button
-              key={item.kind}
-              type="button"
-              disabled={running || readyIn > 0 || !state}
-              onClick={() => ask(item.kind)}
-              className={`press flex cursor-pointer flex-col gap-0.5 rounded-lg px-4 py-3 text-left disabled:cursor-not-allowed ${
-                active === item.kind ? "bg-ink text-paper" : "shadow-[inset_0_0_0_1.5px_var(--color-line)] hover:shadow-[inset_0_0_0_1.5px_var(--color-ink)] disabled:opacity-50"
-              }`}
-            >
-              <span className="font-bold">{item.title}</span>
-              <span className={`text-sm ${active === item.kind ? "text-paper-3" : "text-ink-soft"}`}>{item.line}</span>
-            </button>
-          ))}
+
+      <div className="grid lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+        <div className="flex flex-col gap-6 border-b border-line p-5 lg:border-r lg:border-b-0">
+          <div className="flex flex-col gap-2">
+            {asks.map((item, index) => (
+              <button
+                key={item.kind}
+                type="button"
+                disabled={running || readyIn > 0 || !state}
+                onClick={() => ask(item.kind)}
+                className={`press flex cursor-pointer items-start gap-3 rounded-lg px-4 py-3.5 text-left disabled:cursor-not-allowed ${
+                  active === item.kind ? "bg-ink text-paper" : "shadow-[inset_0_0_0_1.5px_var(--color-line)] hover:shadow-[inset_0_0_0_1.5px_var(--color-ink)] disabled:opacity-50"
+                }`}
+              >
+                <span className={`font-heading text-[1.6rem] leading-none font-semibold ${active === item.kind ? "text-signal" : "text-ink-faint"}`}>{index + 1}</span>
+                <span className="flex flex-col gap-0.5">
+                  <span className="text-[1.05rem] font-bold">{item.title}</span>
+                  <span className={`text-sm leading-snug ${active === item.kind ? "text-paper-3" : "text-ink-soft"}`}>{item.line}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="text-sm text-ink-soft" aria-live="polite">
+            {message ?? (running ? "The agent is working." : readyIn > 0 ? `Ready again in ${readyIn} s.` : "Press a key. A run takes 15 to 30 seconds.")}
+          </p>
+          <Rules state={state} />
         </div>
-        <p className="text-sm leading-relaxed text-ink-soft" aria-live="polite">
-          {message ?? (running ? "The agent is working. Watch the terminal." : readyIn > 0 ? `The wallet is free again in ${readyIn} s.` : "Each key runs the real agent on Zcash testnet. A run takes under a minute.")}
-        </p>
-        <Shares />
+
+        <div className="flex min-w-0 flex-col gap-5 p-5">
+          <Story run={run} orders={state?.orders ?? []} error={error} />
+          <Raw run={run} />
+        </div>
       </div>
     </div>
   );
@@ -76,61 +93,140 @@ function Rules({ state }: { state: State | null }) {
         ["Per payment", `up to ${TAZ(policy.per_payment_cap_zat)}`],
         ["Per day", `up to ${TAZ(policy.daily_budget_zat)}`],
         ["Pays only", policy.allowed_recipients.map((r) => r.label.replace(/ \(.*\)$/, "")).join(", ")],
-        ["Fee", `up to ${policy.max_fee_zat.toLocaleString("en-US")} zat`],
-        ["Valid until", new Date(policy.expires).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })],
       ]
     : [];
   return (
-    <div className="flex flex-col gap-5 border-t border-line p-5 lg:border-t-0 lg:border-r">
-      <div>
-        <span className="text-sm text-ink-soft">Held by the co-signer</span>
-        <h3 className="font-heading text-[1.5rem] leading-tight font-semibold tracking-[-0.01em]">Your rules</h3>
-      </div>
-      <dl className="flex flex-col">
-        {rows.length === 0 && <div className="border-t border-line py-3 text-sm text-ink-faint">Loading the rules from the co-signer</div>}
-        {rows.map(([label, value]) => (
-          <div key={label} className="flex items-baseline justify-between gap-3 border-t border-line py-3">
-            <dt className="text-sm text-ink-soft">{label}</dt>
-            <dd className="text-right font-mono text-[0.85rem] text-ink">{value}</dd>
-          </div>
-        ))}
-      </dl>
+    <div className="flex flex-col">
+      <span className="pb-2 text-sm text-ink-soft">Your rules, held by the co-signer</span>
+      {rows.map(([label, value]) => (
+        <div key={label} className="flex items-baseline justify-between gap-3 border-t border-line py-2.5">
+          <span className="text-sm text-ink-soft">{label}</span>
+          <span className="text-right font-mono text-[0.85rem]">{value}</span>
+        </div>
+      ))}
       {policy && spent !== null && (
-        <div className="flex flex-col gap-2">
+        <div className="flex items-baseline justify-between gap-3 border-t border-line py-2.5">
           <span className="text-sm text-ink-soft">Let through today</span>
-          <span className="font-heading text-[2rem] leading-none font-medium tracking-[-0.4px]">{TAZ(spent)}</span>
-          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-paper-3">
-            <div className="h-full rounded-full bg-ink transition-[width] duration-300 ease-out" style={{ width: `${Math.min(100, (spent / policy.daily_budget_zat) * 100)}%` }} />
-          </div>
-          <div className="flex justify-between text-[0.8rem] text-ink-faint">
-            <span>0</span>
-            <span>{TAZ(policy.daily_budget_zat)} a day</span>
-          </div>
+          <span className="font-mono text-[0.85rem]">{TAZ(spent)}</span>
         </div>
       )}
-      <p className="mt-auto text-sm leading-relaxed text-ink-soft">The agent can't change these. A payment outside them can't be signed at all.</p>
+      {!policy && <span className="border-t border-line py-2.5 text-sm text-ink-faint">Loading the rules</span>}
     </div>
   );
 }
 
-function Terminal({ run, error }: { run: Run | null; error: string | null }) {
+const LABELS: Record<Step["key"], string> = {
+  sync: "Sync the wallet over Tor",
+  build: "Build a shielded payment",
+  prove: "Prove it",
+  ask: "Ask the co-signer for its share",
+  sign: "The co-signer checks your rules",
+  send: "Broadcast over Tor",
+  deliver: "Bitrefill delivers the top-up",
+};
+
+// What the agent is doing, in plain steps, with the outcome as the one big thing to read.
+function Story({ run, orders, error }: { run: Run | null; orders: Order[]; error: string | null }) {
+  if (!run) {
+    return (
+      <div className="flex min-h-[320px] flex-col justify-center gap-2">
+        <span className="font-heading text-[1.75rem] leading-tight font-semibold tracking-[-0.01em]">{error ?? "Press a key to start."}</span>
+        <span className="text-ink-soft">The agent's steps appear here as they happen.</span>
+      </div>
+    );
+  }
+  const title = asks.find((item) => item.kind === run.kind)?.title ?? run.kind;
+  const steps = stepsOf(run, orders);
+  const outcome = outcomeOf(run);
+  const order = outcome.kind === "sent" ? orders.find((item) => item.txid === outcome.txid) : undefined;
+  const memo = run.lines.map((l) => /building a payment of (\d+) zat to (\S+?)…? with/.exec(l)).find(Boolean);
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <span className="font-heading text-[1.75rem] leading-tight font-semibold tracking-[-0.01em]">{title}</span>
+        <span className="text-sm text-ink-faint">{run.done ? `finished ${ago(run.endedAt ?? run.startedAt)}` : "running"}</span>
+      </div>
+      <ol className="flex flex-col">
+        {steps.map((step) => (
+          <li key={step.key} className="flex items-start gap-3 border-t border-line py-2.5 first:border-t-0">
+            <StepMark state={step.state} />
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className={step.state === "todo" ? "text-ink-faint" : step.state === "refused" ? "font-bold text-danger" : step.state === "active" ? "font-bold" : ""}>
+                {step.key === "sign" && step.state === "done" ? "The co-signer checked your rules and signed" : step.key === "sign" && step.state === "refused" ? "The co-signer refused to sign" : LABELS[step.key]}
+              </span>
+              {step.key === "build" && step.state !== "todo" && memo && <span className="text-sm text-ink-soft">{TAZ(Number(memo[1]))} to {run.kind === "unknown" ? "a stranger's address" : "the counter"}</span>}
+              {step.key === "sign" && step.state === "refused" && outcome.kind === "refused" && <span className="text-sm text-ink-soft">{humanReason(outcome.reason)}</span>}
+              {step.key === "send" && step.state === "done" && outcome.kind === "sent" && <TxLink txid={outcome.txid} label="check it on chain" />}
+              {step.key === "deliver" && step.state === "done" && order && (
+                <span className="flex flex-wrap items-center gap-x-3 text-sm text-ink-soft">
+                  Invoice {order.invoiceId?.slice(0, 8)}
+                  {order.receiptTxid && <TxLink txid={order.receiptTxid} label="shielded receipt" />}
+                </span>
+              )}
+              {step.key === "deliver" && step.state === "active" && <span className="text-sm text-ink-soft">Waiting for the block, usually about a minute</span>}
+            </div>
+          </li>
+        ))}
+      </ol>
+      <Verdict run={run} order={order} />
+    </div>
+  );
+}
+
+function Verdict({ run, order }: { run: Run; order?: Order }) {
+  const outcome = outcomeOf(run);
+  if (outcome.kind === "running") return null;
+  const tone =
+    outcome.kind === "refused" || outcome.kind === "failed" || order?.status === "failed"
+      ? { box: "bg-danger/10 text-danger", icon: <CrossIcon size={22} /> }
+      : { box: "bg-positive/10 text-positive", icon: <CheckIcon size={22} /> };
+  const text =
+    outcome.kind === "refused"
+      ? "Refused at the key. No signature exists, so there is nothing to broadcast."
+      : outcome.kind === "failed"
+        ? `The run stopped: ${tidyLine(outcome.detail)}`
+        : order?.status === "delivered"
+          ? "Signed inside your rules, sent shielded, and delivered by Bitrefill."
+          : order?.status === "failed"
+            ? "Signed and sent, but Bitrefill couldn't fill the order."
+            : "Signed by two of three shares and sent. The counter buys once the block lands.";
+  return (
+    <div className={`flex items-center gap-3 rounded-lg px-4 py-3.5 font-bold ${tone.box}`}>
+      {tone.icon}
+      <span>{text}</span>
+    </div>
+  );
+}
+
+function StepMark({ state }: { state: Step["state"] }) {
+  if (state === "done") return <span className="mt-0.5 shrink-0 text-positive"><CheckIcon size={18} /></span>;
+  if (state === "refused") return <span className="mt-0.5 shrink-0 text-danger"><CrossIcon size={18} /></span>;
+  if (state === "active")
+    return (
+      <svg width={18} height={18} viewBox="0 0 24 24" aria-hidden="true" className="mt-0.5 shrink-0 animate-spin text-signal motion-reduce:animate-none">
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeOpacity={0.25} strokeWidth={2.5} />
+        <path d="M21 12a9 9 0 0 0-9-9" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" />
+      </svg>
+    );
+  return <span className="mt-1.5 ml-1 size-2.5 shrink-0 rounded-full border-[1.5px] border-line" aria-hidden="true" />;
+}
+
+// The agent's real output, for anyone who wants to read it.
+function Raw({ run }: { run: Run | null }) {
   const body = useRef<HTMLDivElement>(null);
-  // The wrapper's "<command> failed:" line repeats what the next line says better.
   const lines = run?.lines.map(tidyLine).filter((line) => line.trim() && !/ failed:$/.test(line)) ?? [];
   useEffect(() => {
     body.current?.scrollTo({ top: body.current.scrollHeight });
   }, [lines.length]);
-  const command = asks.find((item) => item.kind === run?.kind)?.command;
-  const status = !run ? "idle" : run.done ? `finished ${ago(run.startedAt)}` : "running";
+  if (!run) return null;
+  const command = asks.find((item) => item.kind === run.kind)?.command;
   return (
-    <div className="flex min-w-0 flex-col">
-      <div className="flex items-center justify-between gap-3 border-b border-term-line px-4 py-2.5 font-mono text-[0.8rem]">
-        <span className="text-term-ink">agent on the VPS</span>
-        <span className={status === "running" ? "text-term-orange" : "text-term-faint"}>{status}</span>
-      </div>
-      <div ref={body} className="h-[320px] overflow-auto px-4 py-3 font-mono text-[0.8rem] leading-relaxed text-term-ink sm:h-[360px]" role="log" aria-live="polite" aria-label="The agent's output">
-        {error && !run && <p className="text-term-red">{error}</p>}
-        {!run && !error && <p className="text-term-faint">Press a key on the right. The agent runs for real and its output appears here.</p>}
+    <details className="group rounded-lg bg-term text-term-ink">
+      <summary className="cursor-pointer list-none px-4 py-3 font-mono text-[0.8rem] text-term-faint select-none hover:text-term-ink">
+        <span className="group-open:hidden">Show the agent's raw output</span>
+        <span className="hidden group-open:inline">Hide the agent's raw output</span>
+      </summary>
+      <div ref={body} className="max-h-[300px] overflow-auto border-t border-term-line px-4 py-3 font-mono text-[0.78rem] leading-relaxed" role="log" aria-label="The agent's output">
         {command && (
           <p className="text-paper">
             <span className="text-term-orange">$ </span>
@@ -138,92 +234,36 @@ function Terminal({ run, error }: { run: Run | null; error: string | null }) {
           </p>
         )}
         {lines.map((line, index) => (
-          <p key={index} className={`break-words whitespace-pre-wrap ${lineTone(line)}`}>
+          <p key={index} className={`break-words whitespace-pre-wrap ${/refused|error|Error/.test(line) ? "text-term-red" : /^sent: /.test(line) ? "text-term-green" : /^\s*(\[device|spend|change|fee|PAY|WARNING|https:\/\/)/.test(line) ? "text-term-faint" : ""}`}>
             {line}
           </p>
         ))}
-        {run && !run.done && <span className="caret inline-block h-4 w-2 translate-y-0.5 bg-term-ink" aria-hidden="true" />}
       </div>
-    </div>
+    </details>
   );
 }
 
-function lineTone(line: string): string {
-  if (/refused|error|failed|Error/.test(line)) return "text-term-red";
-  if (/^sent: /.test(line)) return "text-term-green";
-  if (/^\s*(\[device|spend|change|fee|PAY|WARNING|https:\/\/)/.test(line)) return "text-term-faint";
-  return "";
-}
-
-// What the run ended in, said in plain words, and for a purchase what the counter did with it.
-function Result({ run, orders }: { run: Run | null; orders: Order[] }) {
-  if (!run) return null;
-  const outcome = outcomeOf(run);
-  if (outcome.kind === "running") return <Banner tone="running" title="Running" detail={outcome.step} />;
-  if (outcome.kind === "refused") return <Banner tone="refuse" title="Refused at the key. No transaction exists." detail={humanReason(outcome.reason)} />;
-  if (outcome.kind === "failed") return <Banner tone="refuse" title="The run stopped" detail={outcome.detail} />;
-  const order = orders.find((item) => item.txid === outcome.txid);
+function FullscreenIcon({ exit }: { exit: boolean }) {
   return (
-    <Banner tone="allow" title="Signed by two of three shares and sent">
-      <span className="flex flex-wrap items-center gap-x-3 gap-y-1 [&_a]:text-paper [&_a]:decoration-term-faint">
-        <TxLink txid={outcome.txid} />
-        {run.kind === "buy" && <span className="text-term-faint">{orderLine(order)}</span>}
-        {order?.receiptTxid && <TxLink txid={order.receiptTxid} label="receipt memo" />}
-      </span>
-    </Banner>
-  );
-}
-
-function orderLine(order: Order | undefined): string {
-  if (!order) return "The counter buys once the payment is mined, usually within two minutes.";
-  if (order.status === "delivered") return `Bitrefill delivered it. Invoice ${order.invoiceId?.slice(0, 8)}`;
-  if (order.status === "failed" || order.error) return `The counter couldn't buy it: ${order.error ?? order.status}`;
-  return `The counter is buying it from Bitrefill (${order.status})`;
-}
-
-function Banner({ tone, title, detail, children }: { tone: "allow" | "refuse" | "running"; title: string; detail?: string; children?: React.ReactNode }) {
-  const color = tone === "allow" ? "text-term-green" : tone === "refuse" ? "text-term-red" : "text-term-orange";
-  return (
-    <div className="flex gap-3 border-t border-term-line px-4 py-3">
-      <span className={`mt-0.5 shrink-0 ${color}`}>{tone === "allow" ? <CheckIcon size={18} /> : tone === "refuse" ? <CrossIcon size={18} /> : <Spinner />}</span>
-      <div className="flex min-w-0 flex-col gap-1 text-sm">
-        <span className={`font-bold ${color}`}>{title}</span>
-        {detail && <span className="break-words text-term-ink">{tidyLine(detail)}</span>}
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function Spinner() {
-  return (
-    <svg width={18} height={18} viewBox="0 0 24 24" aria-hidden="true" className="animate-spin motion-reduce:animate-none">
-      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeOpacity={0.25} strokeWidth={2.5} />
-      <path d="M21 12a9 9 0 0 0-9-9" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" />
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {exit ? <path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3" /> : <path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3" />}
     </svg>
   );
 }
 
-function Shares() {
-  const shares: [string, string, boolean][] = [
-    ["Agent", "share 1, proposes payments", true],
-    ["Co-signer", "share 2, signs inside your rules", true],
-    ["You", "share 3, kept offline", false],
-  ];
-  return (
-    <div className="mt-auto flex flex-col">
-      <span className="pb-2 text-sm text-ink-soft">Key shares, two needed to sign</span>
-      {shares.map(([name, line, online]) => (
-        <div key={name} className="flex items-center gap-2.5 border-t border-line py-2.5">
-          <span className={`size-2 shrink-0 rounded-full ${online ? "bg-positive" : "border-[1.5px] border-ink-faint"}`} aria-hidden="true" />
-          <span className="text-sm">
-            <span className="font-bold">{name}</span> <span className="text-ink-soft">{line}</span>
-            <span className="sr-only">{online ? " Online." : " Offline."}</span>
-          </span>
-        </div>
-      ))}
-    </div>
-  );
+// Full screen for the panel itself, so a stage shows only the demo; Esc or the button leaves it.
+function useFullscreen(target: React.RefObject<HTMLElement | null>) {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const update = () => setOn(document.fullscreenElement === target.current);
+    document.addEventListener("fullscreenchange", update);
+    return () => document.removeEventListener("fullscreenchange", update);
+  }, [target]);
+  const toggle = () => {
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void target.current?.requestFullscreen?.();
+  };
+  return { on, toggle };
 }
 
 function useNow(): number {

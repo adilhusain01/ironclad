@@ -44,3 +44,41 @@ export function humanReason(reason: string): string {
     .replace(/recipient (\S+) is not on the allow-list/, "the address isn't on the list of allowed recipients");
 }
 
+
+// A run, told as plain steps for the stage: the raw terminal stays available, but this is what a
+// viewer follows. Each step lights up as its line appears in the agent's real output.
+export type StepState = "todo" | "active" | "done" | "refused";
+export type Step = { key: "sync" | "build" | "prove" | "ask" | "sign" | "send" | "deliver"; state: StepState };
+
+const MARKERS: [Step["key"], RegExp][] = [
+  ["sync", /^syncing/],
+  ["build", /^building a payment/],
+  ["prove", /^proving/],
+  ["ask", /^asking the policy co-signer/],
+  ["sign", /spend\(s\) signed|^broadcasting|^sent: /],
+  ["send", /^sent: /],
+];
+
+export function stepsOf(run: { done: boolean; kind: string; lines: string[] }, orders: { txid: string; status: string }[]): Step[] {
+  const keys: Step["key"][] = ["sync", "build", "prove", "ask", "sign", "send", ...(run.kind === "buy" ? (["deliver"] as const) : [])];
+  const lines = run.lines.map((line) => line.trim());
+  let reached = -1;
+  MARKERS.forEach(([, marker], index) => {
+    if (lines.some((line) => marker.test(line))) reached = Math.max(reached, index);
+  });
+  const outcome = outcomeOf(run);
+  if (run.done && outcome.kind === "refused") {
+    return keys.slice(0, 5).map((key) => ({ key, state: key === "sign" ? "refused" : "done" }));
+  }
+  if (run.done && outcome.kind === "failed") {
+    return keys.slice(0, Math.max(reached, 0) + 1).map((key, index) => ({ key, state: index === Math.max(reached, 0) ? "refused" : "done" }));
+  }
+  if (run.done && outcome.kind === "sent") {
+    const order = orders.find((item) => item.txid === outcome.txid);
+    return keys.map((key) => ({
+      key,
+      state: key !== "deliver" ? "done" : order?.status === "delivered" ? "done" : order?.status === "failed" ? "refused" : "active",
+    }));
+  }
+  return keys.map((key, index) => ({ key, state: index < reached ? "done" : index === reached ? "active" : "todo" }));
+}
