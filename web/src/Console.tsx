@@ -2,7 +2,7 @@
 // streaming in a terminal, with one verdict under it. The panel can go full screen for a stage.
 
 import { useEffect, useRef, useState } from "react";
-import { startRun, TAZ, type DemoKind, type Order, type Run, type State } from "./api.ts";
+import { API_BASE, startRun, TAZ, type DemoKind, type Order, type Run, type State } from "./api.ts";
 import { CheckIcon, CrossIcon, TxLink } from "./pieces.tsx";
 import { humanReason, outcomeOf, spentTodayZat, tidyLine } from "./run.ts";
 
@@ -144,11 +144,23 @@ function Terminal({ run, error }: { run: Run | null; error: string | null }) {
             {ask.command}
           </p>
         )}
-        {lines.map((line, index) => (
-          <p key={index} className={`break-words whitespace-pre-wrap ${/refused|error|Error/.test(line) ? "text-term-red" : /^sent: /.test(line) ? "text-term-green" : /^\s*(\[device|spend|change|fee|PAY|WARNING|https:\/\/)/.test(line) ? "text-term-faint" : ""}`}>
-            {line}
-          </p>
-        ))}
+        {lines.map((line, index) => {
+          // Zexplorer's testnet index lags, so the agent's explorer link is shown as our live check instead.
+          const tx = /^https:\/\/zexplorer\.app\/testnet\/tx\/([0-9a-f]{64})$/.exec(line.trim());
+          if (tx)
+            return (
+              <p key={index}>
+                <a href={`${API_BASE}/tx/${tx[1]}`} target="_blank" rel="noreferrer" className="break-all text-term-green underline decoration-term-faint underline-offset-4 hover:decoration-term-green">
+                  {`${API_BASE}/tx/${tx[1]}`}
+                </a>
+              </p>
+            );
+          return (
+            <p key={index} className={`break-words whitespace-pre-wrap ${/refused|error|Error/.test(line) ? "text-term-red" : /^sent: /.test(line) ? "text-term-green" : /^\s*(\[device|spend|change|fee|PAY|WARNING)/.test(line) ? "text-term-faint" : ""}`}>
+              {line}
+            </p>
+          );
+        })}
         {run && !run.done && <span className="caret inline-block h-4 w-2 translate-y-0.5 bg-term-ink" aria-hidden="true" />}
       </div>
     </div>
