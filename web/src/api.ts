@@ -1,7 +1,9 @@
 // The live API on the VPS: the co-signer's policy and ledger, the counter's orders, and the demo runs.
 // The site is static; everything it shows about the system comes from here.
 
-export const API_BASE = (import.meta.env.VITE_API_BASE ?? "https://vps.tail865d46.ts.net:8443").replace(/\/$/, "");
+// The API lives beside the page (the dashboard serves both), at :8443/ and at /ironclad/ on port 443.
+// VITE_API_BASE points a build elsewhere, for a copy hosted apart from the server.
+export const API_BASE = (import.meta.env.VITE_API_BASE ?? new URL(".", window.location.href).href).replace(/\/$/, "");
 
 export type Payment = [address: string, zat: number];
 

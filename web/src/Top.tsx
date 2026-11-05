@@ -8,8 +8,8 @@ export function TopBar() {
   const item = "hidden rounded-md px-3 py-2 text-[0.95rem] text-ink-soft transition-colors duration-150 hover:text-ink sm:block";
   return (
     <header className="flex items-center justify-between gap-4 py-5">
-      <a href="/" className="flex items-center gap-2.5 rounded-md" aria-label="Ironclad home">
-        <img src="/favicon.svg" alt="" width={26} height={26} />
+      <a href="./" className="flex items-center gap-2.5 rounded-md" aria-label="Ironclad home">
+        <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width={26} height={26} />
         <span className="font-heading text-[1.5rem] font-semibold tracking-[-0.01em]">Ironclad</span>
       </a>
       <nav aria-label="Main" className="flex items-center gap-1">
