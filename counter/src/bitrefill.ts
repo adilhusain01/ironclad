@@ -103,4 +103,5 @@ export const priceUsd = packagePrice;
 
 // Seen on the live API on 2026-11-04: invoices go not_delivered → all_delivered.
 export const FINAL_INVOICE = new Set(["complete", "all_delivered", "blocked", "denied", "payment_error"]);
-export const FINAL_ORDER = new Set(["delivered", "failed", "refunded"]);
+// Bitrefill also answers "permanent_failure" (seen on a capped top-up, 5 Nov 2026): finished, not delivered.
+export const FINAL_ORDER = new Set(["delivered", "failed", "refunded", "permanent_failure"]);
