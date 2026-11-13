@@ -61,7 +61,7 @@ npx tsx src/cli.ts pay <any other address> 2000000     # refused: not on the all
 npx tsx src/cli.ts ledger
 ```
 
-An MCP server for Claude Desktop, Cursor or Claude Code: `agent/src/mcp.ts` (tools `search_products`, `quote`, `buy`, `ledger`, `policy`).
+An MCP server for any MCP client, such as Cursor: `agent/src/mcp.ts` (tools `search_products`, `quote`, `buy`, `ledger`, `policy`).
 
 ## How it works (core flow)
 

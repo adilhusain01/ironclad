@@ -41,4 +41,4 @@ Written from notes kept from the first error on 4 November 2026. Area, what we t
 
 ## Other
 
-- Claude Code's sandbox classifier refused to clone and compile external repositories on the Mac, so the build moved to the VPS. Not a Zcash issue, but it cost the first hour.
+- A sandbox on the Mac refused to clone and compile external repositories, so the build moved to the VPS. Not a Zcash issue, but it cost the first hour.

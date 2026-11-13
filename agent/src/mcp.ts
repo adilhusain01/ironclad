@@ -1,8 +1,8 @@
-// Ironclad as an MCP server, so any agent host (Claude Desktop, Cursor,
-// Claude Code) can shop through the policy without ever holding a key.
+// Ironclad as an MCP server, so any agent host (Cursor or any other MCP
+// client) can shop through the policy without ever holding a key.
 // Tools: search_products, quote, buy, ledger, policy, status.
 //
-// Claude Desktop config:
+// MCP client config:
 // { "mcpServers": { "ironclad": { "command": "npx", "args": ["tsx", "/abs/path/agent/src/mcp.ts"], "env": { ... } } } }
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";

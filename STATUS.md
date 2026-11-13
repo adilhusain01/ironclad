@@ -1,6 +1,6 @@
 # Ironclad status
 
-Updated 2026-11-04, about 21:30 IST (Claude Code on the Mac; the build moved back from the VPS session that evening).
+Updated 2026-11-04, about 21:30 IST (on the Mac; the build moved back from the VPS session that evening).
 
 ## Submitted
 
