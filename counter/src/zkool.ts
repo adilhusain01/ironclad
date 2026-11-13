@@ -4,44 +4,73 @@
 export type Note = { pool: number; value: string; scope: number; memo: string | null; address?: string };
 export type Tx = { txid: string; height: number | null; time: number | null; value: string; notes: Note[] };
 
-export class Zkool {
-  constructor(private readonly url: string) {}
+export type ZkoolOptions = { fetch?: typeof globalThis.fetch; timeoutMs?: number };
 
-  private async query<T>(query: string): Promise<T> {
-    const res = await fetch(`${this.url}/graphql`, {
+/** zkool_graphql's account ids are i32. */
+const MAX_ACCOUNT = 2 ** 31 - 1;
+/** A ZEC amount as zkool's BigDecimal takes it: digits, at most 8 decimal places. */
+const AMOUNT = /^\d{1,8}(\.\d{1,8})?$/;
+
+function checkAccount(account: number): number {
+  if (!Number.isInteger(account) || account < 1 || account > MAX_ACCOUNT) throw new Error(`zkool account id must be a positive integer, got ${account}`);
+  return account;
+}
+
+/**
+ * Every value goes to zkool as a GraphQL variable, never pasted into the query
+ * text: recipient and memo come from payers and from Bitrefill, and a quote in
+ * either could otherwise add a recipient or change the amount.
+ */
+export class Zkool {
+  private readonly fetch: typeof globalThis.fetch;
+  private readonly timeoutMs: number;
+
+  constructor(private readonly url: string, opts: ZkoolOptions = {}) {
+    this.fetch = opts.fetch ?? globalThis.fetch;
+    this.timeoutMs = opts.timeoutMs ?? 120_000;
+  }
+
+  private async query<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+    const res = await this.fetch(`${this.url}/graphql`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query, variables }),
+      signal: AbortSignal.timeout(this.timeoutMs),
     });
+    if (!res.ok) throw new Error(`zkool_graphql answered ${res.status} ${res.statusText}`.trim());
     const body = (await res.json()) as { data?: T; errors?: { message: string }[] };
     if (body.errors?.length) throw new Error(body.errors.map((e) => e.message).join("; "));
     return body.data as T;
   }
 
   async currentHeight(): Promise<number> {
-    return (await this.query<{ currentHeight: number }>("{ currentHeight }")).currentHeight;
+    return (await this.query<{ currentHeight: number }>("{ currentHeight }", {})).currentHeight;
   }
 
   async synchronize(accounts: number[]): Promise<number> {
-    return (await this.query<{ synchronize: number }>(`mutation { synchronize(idAccounts: [${accounts.join(",")}], fast: false) }`)).synchronize;
+    accounts.forEach(checkAccount);
+    return (await this.query<{ synchronize: number }>("mutation($accounts: [Int!]!) { synchronize(idAccounts: $accounts, fast: false) }", { accounts })).synchronize;
   }
 
   async address(account: number): Promise<string> {
-    return (await this.query<{ addressByAccount: { ua: string } }>(`{ addressByAccount(idAccount: ${account}) { ua } }`)).addressByAccount.ua;
+    checkAccount(account);
+    return (await this.query<{ addressByAccount: { ua: string } }>("query($account: Int!) { addressByAccount(idAccount: $account) { ua } }", { account })).addressByAccount.ua;
   }
 
   async transactions(account: number): Promise<Tx[]> {
+    checkAccount(account);
     return (await this.query<{ transactionsByAccount: Tx[] }>(
-      `{ transactionsByAccount(idAccount: ${account}) { txid height time value notes { pool value scope memo address } } }`,
+      "query($account: Int!) { transactionsByAccount(idAccount: $account) { txid height time value notes { pool value scope memo address } } }",
+      { account },
     )).transactionsByAccount;
   }
 
   async pay(account: number, address: string, amountZec: string, memo: string): Promise<string> {
-    const safe = memo.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    checkAccount(account);
+    if (!AMOUNT.test(amountZec)) throw new Error(`zkool amount must be a plain decimal ZEC string, got ${JSON.stringify(amountZec)}`);
     await this.synchronize([account]);
-    return (await this.query<{ pay: string }>(
-      `mutation { pay(idAccount: ${account}, payment: { recipients: [{ address: "${address}", amount: ${amountZec}, memo: "${safe}" }], confirmations: 1 }) }`,
-    )).pay;
+    const payment = { recipients: [{ address, amount: amountZec, memo }], confirmations: 1 };
+    return (await this.query<{ pay: string }>("mutation($account: Int!, $payment: Payment!) { pay(idAccount: $account, payment: $payment) }", { account, payment })).pay;
   }
 }
 
