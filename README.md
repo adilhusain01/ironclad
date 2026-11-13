@@ -13,8 +13,8 @@ Built at the Free Society Hack, Mumbai, 4 November 2026. Privacy track (themes 1
 ## Demo
 
 - Demo video (2:49, recorded live in a terminal against Zcash testnet and Bitrefill's API, with voiceover and captions): https://youtu.be/8QMsMO8Dx6E. The first recording (2:29) is in this repo as `docs/demo.mp4`.
-- Public URL: https://vps.tail865d46.ts.net:8443 (the site: the judge presses three keys, an in-policy purchase, an over-cap attempt and an unknown recipient, and watches the real agent's output stream in; the co-signer's ledger and the counter's Bitrefill orders update live; every txid links to a live check through testnet.zec.rocks)
-- Testnet transaction, a 2-of-3 FROST spend co-signed by the policy daemon: `82457796b6d92643d6cfcade47716789a3c1ee72c9ebc77c27ccca592365e26a` ([check it](https://vps.tail865d46.ts.net:8443/tx/82457796b6d92643d6cfcade47716789a3c1ee72c9ebc77c27ccca592365e26a): mined in block 4,581,204, looked up live through testnet.zec.rocks; [Zexplorer](https://zexplorer.app/testnet/tx/82457796b6d92643d6cfcade47716789a3c1ee72c9ebc77c27ccca592365e26a) was about 76,000 blocks behind testnet on 4 Nov and may show not found)
+- Public URL: https://ironclad.adilhusain.dev (the site: the judge presses three keys, an in-policy purchase, an over-cap attempt and an unknown recipient, and watches the real agent's output stream in; the co-signer's ledger and the counter's Bitrefill orders update live; every txid links to a live check through testnet.zec.rocks)
+- Testnet transaction, a 2-of-3 FROST spend co-signed by the policy daemon: `82457796b6d92643d6cfcade47716789a3c1ee72c9ebc77c27ccca592365e26a` ([check it](https://ironclad.adilhusain.dev/tx/82457796b6d92643d6cfcade47716789a3c1ee72c9ebc77c27ccca592365e26a): mined in block 4,581,204, looked up live through testnet.zec.rocks; [Zexplorer](https://zexplorer.app/testnet/tx/82457796b6d92643d6cfcade47716789a3c1ee72c9ebc77c27ccca592365e26a) was about 76,000 blocks behind testnet on 4 Nov and may show not found)
 - The purchase in the video: shielded payment `9b46cda814382b444dc963ef5000ed3db6b70c83ed1f62bbd571c89364305974` (mined in block 4,582,029), co-signed inside the rules, bought through Bitrefill's live API, invoice `f547c32c-3f91-40e8-a541-1483653bf049`, delivered, receipt memo sent back shielded.
 - A purchase whose sync and broadcast went through Tor: `1cbec807f17289bf99254581c051fce9d62bf4ac182b33ec41820c3c7605f4ab`
 - The counter's receipt memo for that order, sent back shielded: `a270bba044160af3be3eac15f66906d74d8942b5829b700707cc97085fe4c6e0`
@@ -25,8 +25,8 @@ Built at the Free Society Hack, Mumbai, 4 November 2026. Privacy track (themes 1
 
 `web/` is the public site: a static Vite and React page with Tailwind v4, in Stockroom's design language (concrete paper, blue-black ink, signal orange; Bricolage Grotesque, Instrument Sans, JetBrains Mono). It holds no keys and runs nothing itself. It reads the live policy, the co-signer's ledger, the counter's orders and each demo run from the dashboard API on the VPS (`GET /api/state`, `POST /api/demo` with `"async": true`), so every line in its terminal comes from the real agent.
 
-- Deploy on Vercel from this repo: Root Directory `web`, framework Vite (build `npm run build`, output `dist`). Optional env `VITE_API_BASE`; the default is `https://vps.tail865d46.ts.net:8443`.
-- On the VPS the dashboard serves the same build at its own address (https://vps.tail865d46.ts.net:8443), so the page and the API share one origin: `cd web && npm run build`, copy `web/dist` to the server, restart the dashboard.
+- Deploy on Vercel from this repo: Root Directory `web`, framework Vite (build `npm run build`, output `dist`). Set `VITE_API_BASE` to `https://ironclad.adilhusain.dev`; without it the page calls its own origin.
+- On the VPS the dashboard serves the same build at https://ironclad.adilhusain.dev (Caddy on the VPS in front of the dashboard on 127.0.0.1:8795), so the page and the API share one origin: `cd web && npm run build`, copy `web/dist` to the server, restart the dashboard.
 - Locally: `cd web && npm install && npm run dev`. Tests for how the page reads a run: `npm test`.
 
 ## Which parts are for which track

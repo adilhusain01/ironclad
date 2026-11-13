@@ -1,7 +1,7 @@
 // The live API on the VPS: the co-signer's policy and ledger, the counter's orders, and the demo runs.
 // The site is static; everything it shows about the system comes from here.
 
-// The API lives beside the page (the dashboard serves both), at :8443/ and at /ironclad/ on port 443.
+// The API lives beside the page (the dashboard serves both), at https://ironclad.adilhusain.dev.
 // VITE_API_BASE points a build elsewhere, for a copy hosted apart from the server.
 export const API_BASE = (import.meta.env.VITE_API_BASE ?? new URL(".", window.location.href).href).replace(/\/$/, "");
 
