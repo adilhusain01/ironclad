@@ -11,6 +11,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { z } from "zod";
 import { pay } from "./cli.js";
+import { orderMemo } from "./order.js";
 
 const POLICY_FILE = process.env.POLICY_FILE ?? "../policy/example-policy.json";
 const LEDGER_FILE = process.env.LEDGER_FILE ?? "../.wallets/frost/ledger.jsonl";
@@ -53,10 +54,10 @@ server.registerTool(
   },
   async ({ product_id, value, phone, zat }) => {
     if (!COUNTER_ADDRESS) return { content: [{ type: "text", text: "COUNTER_ADDRESS is not configured" }], isError: true };
-    const orderId = Math.random().toString(16).slice(2, 10).padEnd(8, "0");
-    const memo = [`IRON-${orderId}`, product_id, String(value), phone].filter(Boolean).join(" ");
     try {
-      const txid = pay(COUNTER_ADDRESS, zat, memo);
+      const { orderId, memo } = orderMemo(product_id, value, phone);
+      // stdout carries the MCP protocol: progress goes to stderr
+      const txid = pay(COUNTER_ADDRESS, zat, memo, (line) => process.stderr.write(line + "\n"));
       return { content: [{ type: "text", text: `order ${orderId} sent: txid ${txid} (https://zexplorer.app/testnet/tx/${txid}). The counter buys ${product_id} ${value} once the payment is confirmed.` }] };
     } catch (e) {
       return { content: [{ type: "text", text: `refused or failed: ${e instanceof Error ? e.message : String(e)}` }], isError: true };

@@ -14,3 +14,19 @@ describe("FINAL_ORDER", () => {
     for (const status of ["created", "payment_detected", "processing"]) expect(FINAL_ORDER.has(status)).toBe(false);
   });
 });
+
+// Requirement: a Bitrefill request that hangs gives up, so one stuck call
+// never stalls the counter's loop (the same rule as the zkool client).
+import { Bitrefill } from "../src/bitrefill.js";
+
+describe("Bitrefill client", () => {
+  it("gives up on a request that hangs", async () => {
+    const hang = ((_url: string, init?: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(init.signal!.reason));
+      })) as unknown as typeof globalThis.fetch;
+    const started = Date.now();
+    await expect(new Bitrefill("key", "http://bitrefill", { fetch: hang, timeoutMs: 50 }).ping()).rejects.toThrow(/timed out|abort/i);
+    expect(Date.now() - started).toBeLessThan(2_000);
+  });
+});

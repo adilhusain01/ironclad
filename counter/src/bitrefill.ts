@@ -21,12 +21,21 @@ export class BitrefillError extends Error {
   }
 }
 
+export type BitrefillOptions = { fetch?: typeof globalThis.fetch; timeoutMs?: number };
+
 export class Bitrefill {
-  constructor(private readonly apiKey: string, private readonly baseUrl = "https://api.bitrefill.com/v2") {}
+  private readonly fetch: typeof globalThis.fetch;
+  private readonly timeoutMs: number;
+
+  constructor(private readonly apiKey: string, private readonly baseUrl = "https://api.bitrefill.com/v2", opts: BitrefillOptions = {}) {
+    this.fetch = opts.fetch ?? globalThis.fetch;
+    this.timeoutMs = opts.timeoutMs ?? 30_000;
+  }
 
   private async call<T>(method: string, path: string, body?: unknown, attempt = 1): Promise<T> {
-    const res = await fetch(`${this.baseUrl}${path}`, {
+    const res = await this.fetch(`${this.baseUrl}${path}`, {
       method,
+      signal: AbortSignal.timeout(this.timeoutMs),
       headers: { authorization: `Bearer ${this.apiKey}`, "content-type": "application/json", accept: "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
     });

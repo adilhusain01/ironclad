@@ -12,10 +12,10 @@
 // SESSION_DIR, COUNTER_ADDRESS, POLICY_FILE, LEDGER_FILE, AGENT_SHARE.
 
 import { execFileSync, spawnSync } from "node:child_process";
-import { randomBytes } from "node:crypto";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { orderMemo } from "./order.js";
 
 const env = (k: string, fallback?: string) => {
   const v = process.env[k] ?? fallback;
@@ -53,31 +53,32 @@ function flagValue(args: string[], name: string): string | undefined {
   return i >= 0 ? args[i + 1] : undefined;
 }
 
-function encodeMemo(orderId: string, productId: string, value: number, recipient?: string) {
-  return [`IRON-${orderId}`, productId, String(value), recipient].filter(Boolean).join(" ");
-}
-
-/** Builds, proves, co-signs and sends one payment from the group. Returns the txid. */
-export function pay(address: string, zat: number, memo: string): string {
+/**
+ * Builds, proves, co-signs and sends one payment from the group. Returns the
+ * txid. Progress goes to `log`: the MCP server passes one that writes to
+ * stderr, because its stdout carries the protocol.
+ */
+export function pay(address: string, zat: number, memo: string, log: (line: string) => void = console.log): string {
+  if (!Number.isSafeInteger(zat) || zat <= 0) throw new Error(`amount must be a whole number of zatoshis, got ${zat}`);
   const work = mkdtempSync(join(tmpdir(), "ironclad-"));
   try {
     const created = join(work, "created.pczt");
     const proven = join(work, "proven.pczt");
     const signed = join(work, "signed.pczt");
-    console.log(`syncing the group wallet over ${CONNECTION}`);
+    log(`syncing the group wallet over ${CONNECTION}`);
     run(DEVTOOL, ["wallet", "-w", GROUP_WALLET, "sync", "-s", "zecrocks", "--connection", CONNECTION], { quiet: true });
-    console.log(`building a payment of ${zat} zat to ${address.slice(0, 14)}… with memo "${memo}"`);
+    log(`building a payment of ${zat} zat to ${address.slice(0, 14)}… with memo "${memo}"`);
     run(DEVTOOL, ["pczt", "-w", GROUP_WALLET, "create", "--address", address, "--value", String(zat), "--memo", memo, "--output", created], { quiet: true });
-    console.log("proving (this takes a few seconds)");
+    log("proving (this takes a few seconds)");
     const provenBytes = run(DEVTOOL, ["pczt", "-w", GROUP_WALLET, "prove"], { input: readFileSync(created), quiet: true });
     writeFileSync(proven, provenBytes);
-    console.log(`asking the policy co-signer for its share (session ${SESSION_DIR})`);
+    log(`asking the policy co-signer for its share (session ${SESSION_DIR})`);
     const out = run(COSIGNER, ["coordinate", "--as", AGENT_SHARE, "--dir", SESSION_DIR, "--pczt", proven, "--out", signed], { cwd: FROST_DATA_DIR });
-    process.stdout.write(out);
-    console.log(`broadcasting over ${CONNECTION}`);
+    log(out.toString().trimEnd());
+    log(`broadcasting over ${CONNECTION}`);
     const sent = run(DEVTOOL, ["pczt", "-w", GROUP_WALLET, "send", "-s", "zecrocks", "--connection", CONNECTION], { input: readFileSync(signed), quiet: true }).toString();
     const txid = sent.match(/[0-9a-f]{64}/)?.[0] ?? sent.trim();
-    console.log(`sent: ${txid}\nhttps://zexplorer.app/testnet/tx/${txid}`);
+    log(`sent: ${txid}\nhttps://zexplorer.app/testnet/tx/${txid}`);
     return txid;
   } finally {
     rmSync(work, { recursive: true, force: true });
@@ -91,8 +92,7 @@ function main(argv: string[]) {
       const [productId, valueText] = rest;
       if (!productId || !valueText) throw new Error("usage: ironclad buy <product-id> <value> [--phone N] [--zat Z]");
       if (!COUNTER_ADDRESS) throw new Error("COUNTER_ADDRESS is not set");
-      const orderId = randomBytes(4).toString("hex");
-      const memo = encodeMemo(orderId, productId, Number(valueText), flagValue(rest, "--phone"));
+      const { orderId, memo } = orderMemo(productId, Number(valueText), flagValue(rest, "--phone"));
       const zat = Number(flagValue(rest, "--zat") ?? 1_000_000);
       console.log(`order ${orderId}: ${productId} ${valueText}${flagValue(rest, "--phone") ? " for " + flagValue(rest, "--phone") : ""}`);
       pay(COUNTER_ADDRESS, zat, memo);

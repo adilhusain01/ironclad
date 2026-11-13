@@ -33,14 +33,19 @@ const seen = new Set<string>();
 export async function runOnce(ctx: {
   zkool: Zkool;
   account: number;
+  /** zkool's watch-only account for the Ironclad group (its viewing key): an order counts only if the group paid it. */
+  groupAccount: number;
   bitrefill: Bitrefill;
   store: OrderStore;
   policy: CounterPolicy;
   payerReceipt: (txid: string, memo: string) => Promise<string | null>;
 }) {
-  const { zkool, account, bitrefill, store, policy } = ctx;
-  const tip = await zkool.synchronize([account]);
+  const { zkool, account, groupAccount, store, policy } = ctx;
+  const tip = await zkool.synchronize([account, groupAccount]);
   const txs = await zkool.transactions(account);
+  // The counter's address is public and testnet coins are free, so anyone can
+  // pay it a memo. Only a spend by the group went through the co-signer's policy.
+  const fromGroup = new Set((await zkool.transactions(groupAccount)).filter((t) => Number(t.value) < 0).map((t) => t.txid));
   for (const p of incomingPayments(txs)) {
     if (tip - p.height + 1 < policy.confirmations) continue;
     if (store.get(p.txid)) continue;
@@ -54,7 +59,7 @@ export async function runOnce(ctx: {
     }
     if (!store.reserve(p.txid, memo, p.valueZat)) continue;
     log("reserved", p.txid, memo);
-    const verdict = checkOrder(memo, p.valueZat, store, policy);
+    const verdict = fromGroup.has(p.txid) ? checkOrder(memo, p.valueZat, store, policy) : "not paid by the Ironclad group, so the co-signer never approved it";
     if (verdict) {
       store.update(p.txid, { status: "refused", note: verdict });
       log("refused", p.txid, verdict);
@@ -63,8 +68,9 @@ export async function runOnce(ctx: {
     await fulfil(p.txid, memo, ctx);
   }
   // keep polling anything still buying
+  // one order that keeps failing must not hold up the others
   for (const o of store.all().filter((o) => o.status === "buying" && o.orderRef)) {
-    await settle(o.txid, o.orderRef!, ctx);
+    await settle(o.txid, o.orderRef!, ctx).catch((e) => log("still buying", o.txid, String(e)));
   }
 }
 
@@ -79,6 +85,7 @@ export function checkOrder(memo: OrderMemo, paidZat: number, store: OrderStore, 
 
 async function fulfil(txid: string, memo: OrderMemo, ctx: Parameters<typeof runOnce>[0]) {
   const { bitrefill, store, policy } = ctx;
+  let orderRef: string | undefined;
   try {
     const product = await bitrefill.product(memo.productId);
     if (product.in_stock === false) return void store.update(txid, { status: "refused", note: "out of stock" });
@@ -87,15 +94,18 @@ async function fulfil(txid: string, memo: OrderMemo, ctx: Parameters<typeof runO
     if (price > policy.max_price_per_order) return void store.update(txid, { status: "refused", note: `price ${price} is over the counter's cap of ${policy.max_price_per_order}` });
     if (product.recipient_type === "phone_number" && !memo.recipient) return void store.update(txid, { status: "refused", note: "top-up without a phone number" });
     const invoice = await bitrefill.createInvoice({ productId: memo.productId, value: memo.value, phoneNumber: memo.recipient, autoPay: true });
-    const orderRef = invoice.orders?.[0]?.id;
+    orderRef = invoice.orders?.[0]?.id;
     store.update(txid, { status: "buying", invoiceId: invoice.id, orderRef });
     log("bought", txid, "invoice", invoice.id, "order", orderRef, `price ${price}`);
-    if (orderRef) await settle(txid, orderRef, ctx);
   } catch (e) {
     const msg = e instanceof BitrefillError ? `${e.httpStatus} ${e.message}` : String(e);
     store.update(txid, { status: "failed", note: msg });
     log("failed", txid, msg);
+    return;
   }
+  // Bought: from here an error leaves the order "buying", and the loop keeps
+  // polling it until Bitrefill says it is finished.
+  if (orderRef) await settle(txid, orderRef, ctx);
 }
 
 async function settle(txid: string, orderRef: string, ctx: Parameters<typeof runOnce>[0]) {
@@ -119,20 +129,21 @@ async function settle(txid: string, orderRef: string, ctx: Parameters<typeof run
 async function main() {
   const zkool = new Zkool(env("ZKOOL_URL", "http://127.0.0.1:8010"));
   const account = Number(env("COUNTER_ACCOUNT", "1"));
+  const groupAccount = Number(env("GROUP_ACCOUNT"));
   const bitrefill = new Bitrefill(env("BITREFILL_API_KEY"), env("BITREFILL_BASE_URL", "https://api.bitrefill.com/v2"));
   const store = new OrderStore(env("ORDERS_PATH", "./orders.json"));
   const policy = JSON.parse(readFileSync(env("COUNTER_POLICY", "./counter-policy.json"), "utf8")) as CounterPolicy;
-  const payers = new Map<string, string>(); // txid -> return address, learned from the memo's reply-to if present
+  // Every order comes from the group, so receipts go back to the group's address.
   const replyTo = env("DEFAULT_RECEIPT_ADDRESS", "");
   const payerReceipt = async (_txid: string, memo: string) => {
-    const to = payers.get(_txid) ?? replyTo;
+    const to = replyTo;
     if (!to) return null;
     return zkool.pay(account, to, "0.0001", memo);
   };
   log("counter watching account", account, "at", await zkool.address(account));
   for (;;) {
     try {
-      await runOnce({ zkool, account, bitrefill, store, policy, payerReceipt });
+      await runOnce({ zkool, account, groupAccount, bitrefill, store, policy, payerReceipt });
     } catch (e) {
       log("loop error", String(e));
     }

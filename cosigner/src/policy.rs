@@ -17,12 +17,16 @@ use zcash_address::unified::{self, Container, Encoding};
 use crate::check::Report;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Recipient {
     pub label: String,
     pub address: String,
 }
 
+/// A field this co-signer does not know makes the file fail to load: a rule
+/// that is not enforced must not look as if it were.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Policy {
     pub version: u32,
     pub name: String,
@@ -34,7 +38,7 @@ pub struct Policy {
     pub allowed_recipients: Vec<Recipient>,
     /// Refuse fees above this (a lying coordinator could burn funds as fee).
     pub max_fee_zat: u64,
-    /// ISO 8601 instant after which nothing is signed.
+    /// UTC instant after which nothing is signed, as `YYYY-MM-DDTHH:MM:SSZ`.
     pub expires: String,
 }
 
@@ -155,6 +159,11 @@ pub fn iso_from_unix(secs: u64) -> String {
 /// The decision, with nothing written anywhere.
 pub fn evaluate(policy: &Policy, ledger: &Ledger, report: &Report) -> Result<(), String> {
     let now = now_iso();
+    // Compared as text, which is only sound in exactly the form now_iso()
+    // writes; "never" would otherwise sort after every date and never expire.
+    if !is_utc_timestamp(&policy.expires) {
+        return Err(format!("policy expires {:?}, which is not a UTC timestamp like 2026-12-04T00:00:00Z", policy.expires));
+    }
     if now.as_str() > policy.expires.as_str() {
         return Err(format!("policy expired at {}", policy.expires));
     }
@@ -200,19 +209,35 @@ pub fn decide(policy_path: &str, ledger_path: &str, report: &Report) -> Result<(
     verdict
 }
 
-/// The raw receivers inside a unified address, whatever their typecode. The
+fn is_utc_timestamp(text: &str) -> bool {
+    let b = text.as_bytes();
+    b.len() == 20
+        && b.iter().enumerate().all(|(i, c)| match i {
+            4 | 7 => *c == b'-',
+            10 => *c == b'T',
+            13 | 16 => *c == b':',
+            19 => *c == b'Z',
+            _ => c.is_ascii_digit(),
+        })
+}
+
+/// The receivers inside a unified address, each with its typecode. The
 /// co-signer re-encodes a paid output as an address with one receiver, while
 /// a policy usually lists the recipient's full address with several receivers,
-/// so two addresses name the same recipient when they share a receiver.
-pub fn receivers(address: &str) -> Vec<Vec<u8>> {
+/// so two addresses name the same recipient when they share a receiver of the
+/// same kind (an Ironwood receiver never matches a Sapling one with the same
+/// bytes).
+pub fn receivers(address: &str) -> Vec<(u32, Vec<u8>)> {
     match unified::Address::decode(address) {
         Ok((_, _, ua)) => ua
             .items()
             .into_iter()
             .map(|r| match r {
-                unified::Receiver::Orchard(b) | unified::Receiver::Sapling(b) => b.to_vec(),
-                unified::Receiver::P2pkh(b) | unified::Receiver::P2sh(b) => b.to_vec(),
-                unified::Receiver::Unknown { data, .. } => data,
+                unified::Receiver::P2pkh(b) => (0, b.to_vec()),
+                unified::Receiver::P2sh(b) => (1, b.to_vec()),
+                unified::Receiver::Sapling(b) => (2, b.to_vec()),
+                unified::Receiver::Orchard(b) => (3, b.to_vec()),
+                unified::Receiver::Unknown { typecode, data } => (typecode, data),
             })
             .collect(),
         Err(_) => Vec::new(),
@@ -327,6 +352,64 @@ mod tests {
         assert!(same_recipient(full, reported));
         assert!(!same_recipient(other, reported));
         assert!(!same_recipient("not an address", reported));
+    }
+
+    /// The paid receiver is always an Ironwood one. An allow-list entry's
+    /// Sapling receiver with the same 43 bytes belongs to nobody who could
+    /// spend such a payment: it must not count as a match.
+    #[test]
+    fn a_receiver_of_another_kind_with_the_same_bytes_does_not_match() {
+        use orchard::keys::{FullViewingKey, Scope, SpendingKey};
+        let fvk = FullViewingKey::from(&SpendingKey::from_bytes([7; 32]).unwrap());
+        let bytes = fvk.address_at(0u32, Scope::External).to_raw_address_bytes();
+        let ua = |r: unified::Receiver| {
+            unified::Address::try_from_items(unified::Revision::R0, vec![unified::Uitem::Data(r)])
+                .unwrap()
+                .encode(&zcash_protocol::consensus::NetworkType::Test)
+        };
+        let paid = ua(unified::Receiver::Orchard(bytes));
+        assert!(same_recipient(&paid, &paid));
+        assert!(!same_recipient(
+            &ua(unified::Receiver::Sapling(bytes)),
+            &paid
+        ));
+    }
+
+    /// An expiry the co-signer cannot read must not mean "never expires".
+    #[test]
+    fn an_expiry_that_is_not_a_utc_timestamp_refuses() {
+        for bad in ["never", "2099-01-01", "2099-01-01T00:00:00+05:30", ""] {
+            let mut p = policy();
+            p.expires = bad.into();
+            let err =
+                evaluate(&p, &empty_ledger(), &report(vec![("utest1counter", 1)], 1)).unwrap_err();
+            assert!(err.contains("expires"), "{bad}: {err}");
+        }
+    }
+
+    /// A rule the co-signer does not know must not load and look enforced.
+    #[test]
+    fn a_policy_with_an_unknown_field_does_not_load() {
+        let mut json = serde_json::to_value(policy()).unwrap();
+        json["per_recipient_cap_zat"] = 5.into();
+        let path = std::env::temp_dir().join(format!(
+            "ironclad-unknown-field-{}.json",
+            std::process::id()
+        ));
+        fs::write(&path, json.to_string()).unwrap();
+        let err = Policy::load(path.to_str().unwrap())
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("per_recipient_cap_zat"), "{err}");
+    }
+
+    /// The policy the VPS daemon runs with loads under these rules; if it did
+    /// not, the daemon would refuse every payment.
+    #[test]
+    fn the_shipped_policy_loads() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../policy/example-policy.json");
+        let policy = Policy::load(path).unwrap();
+        assert!(is_utc_timestamp(&policy.expires), "{}", policy.expires);
     }
 
     #[test]

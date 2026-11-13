@@ -10,6 +10,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
 import { createServer } from "node:http";
+import { DayBudget, insideDir, readBody, remember } from "./guards.js";
 const env = (k: string, fallback: string) => process.env[k] ?? fallback;
 
 const POLICY_FILE = env("POLICY_FILE", "../policy/example-policy.json");
@@ -42,7 +43,7 @@ function lookup(txid: string): Promise<string> {
     child.on("close", () => {
       clearTimeout(timer);
       const text = out.replace(/\r/g, "").trim();
-      if (/Mined in testnet block \d+/.test(text)) looked.set(txid, text);
+      if (/Mined in testnet block \d+/.test(text)) remember(looked, txid, text, 500);
       resolve(text || "No answer from the light wallet server.");
     });
   });
@@ -65,7 +66,7 @@ function txPage(txid: string, result: string): string {
 function serveSite(path: string, res: import("node:http").ServerResponse): boolean {
   if (!existsSync(join(WEB_DIST, "index.html"))) return false;
   const file = normalize(join(WEB_DIST, path === "/" ? "index.html" : path));
-  if (!file.startsWith(normalize(WEB_DIST)) || !existsSync(file) || !statSync(file).isFile()) return false;
+  if (!insideDir(WEB_DIST, file) || !existsSync(file) || !statSync(file).isFile()) return false;
   const cache = path.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-cache";
   res.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream", "cache-control": cache });
   createReadStream(file).pipe(res);
@@ -74,6 +75,12 @@ function serveSite(path: string, res: import("node:http").ServerResponse): boole
 
 let lastDemo = 0;
 let demoLog: { at: string; kind: string; out: string }[] = [];
+// Every run spends from the group wallet's float and may buy a test product: a cap keeps a script from emptying it.
+const demoBudget = new DayBudget(Number(env("DEMO_RUNS_PER_DAY", "40")));
+const logDemo = (kind: string, out: string) => {
+  demoLog.push({ at: new Date().toISOString(), kind, out });
+  demoLog = demoLog.slice(-20);
+};
 // The run in progress (or the last one), streamed line by line so a page can show it live.
 type Run = { id: number; kind: string; startedAt: string; lines: string[]; done: boolean; endedAt?: string };
 let current: Run | null = null;
@@ -167,12 +174,12 @@ a{color:var(--accent)}@media (prefers-reduced-motion:reduce){button{transition:n
 </main>
 <script>
 const $=s=>document.querySelector(s);
-const esc=s=>String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));const hex=s=>/^[0-9a-f]{64}$/.test(s)?s:"";
 const short=a=>a?a.slice(0,14)+"…"+a.slice(-6):"";
 async function refresh(){const s=await (await fetch("/api/state")).json();
 $("#policy").innerHTML=['per payment cap|'+s.policy.per_payment_cap_zat/1e8+' TAZ','daily budget|'+s.policy.daily_budget_zat/1e8+' TAZ','max fee|'+s.policy.max_fee_zat+' zat','expires|'+esc(s.policy.expires),'allowed recipients|'+s.policy.allowed_recipients.map(r=>esc(r.label)+' <span class=mono>'+short(r.address)+'</span>').join('<br>')].map(l=>{const[a,b]=l.split('|');return '<div class=row><span class=dim>'+a+'</span><span>'+b+'</span></div>'}).join('');
 $("#ledger").innerHTML=s.ledger.length?s.ledger.map(e=>'<div class=row><span><span class="'+e.decision+'">'+e.decision.toUpperCase()+'</span> '+e.payments.map(p=>(p[1]/1e8)+' TAZ to <span class=mono>'+short(p[0])+'</span>').join(', ')+(e.reason?'<br><span class=dim>'+esc(e.reason)+'</span>':'')+'</span><span class="dim mono">'+e.at.slice(11,19)+'</span></div>').join(''):'<span class=dim>no decisions yet</span>';
-$("#orders").innerHTML=s.orders.length?s.orders.map(o=>'<div class=row><span>'+esc(o.memo.productId)+' '+esc(o.memo.value)+(o.memo.recipient?' for '+esc(o.memo.recipient):'')+'<br><span class=dim>'+esc(o.status)+(o.invoiceId?' · invoice '+esc(o.invoiceId):'')+(o.receiptTxid?' · receipt memo <a href="https://zexplorer.app/testnet/tx/'+o.receiptTxid+'">'+o.receiptTxid.slice(0,10)+'…</a>':'')+(o.note?' · '+esc(o.note):'')+'</span></span><span class="dim mono"><a href="https://zexplorer.app/testnet/tx/'+o.txid+'">'+o.txid.slice(0,10)+'…</a></span></div>').join(''):'<span class=dim>no orders yet</span>';
+$("#orders").innerHTML=s.orders.length?s.orders.map(o=>'<div class=row><span>'+esc(o.memo.productId)+' '+esc(o.memo.value)+(o.memo.recipient?' for '+esc(o.memo.recipient):'')+'<br><span class=dim>'+esc(o.status)+(o.invoiceId?' · invoice '+esc(o.invoiceId):'')+(o.receiptTxid?' · receipt memo <a href="https://zexplorer.app/testnet/tx/'+hex(o.receiptTxid)+'">'+esc(o.receiptTxid.slice(0,10))+'…</a>':'')+(o.note?' · '+esc(o.note):'')+'</span></span><span class="dim mono"><a href="https://zexplorer.app/testnet/tx/'+hex(o.txid)+'">'+esc(o.txid.slice(0,10))+'…</a></span></div>').join(''):'<span class=dim>no orders yet</span>';
 $("#addr").innerHTML='<div class=row><span class=dim>group (2-of-3)</span><span>'+esc(s.groupAddress)+'</span></div><div class=row><span class=dim>counter</span><span>'+esc(s.counterAddress)+'</span></div>';}
 async function demo(kind,btn){document.querySelectorAll('button').forEach(b=>b.disabled=true);$("#out").textContent="working… (building, proving, asking the co-signer)";try{const r=await fetch("/api/demo",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({kind})});$("#out").textContent=await r.text();}catch(e){$("#out").textContent=String(e)}document.querySelectorAll('button').forEach(b=>b.disabled=false);refresh();}
 $("#buy").onclick=()=>demo("buy");$("#overcap").onclick=()=>demo("overcap");$("#unknown").onclick=()=>demo("unknown");
@@ -227,16 +234,29 @@ createServer(async (req, res) => {
     return req.method === "HEAD" ? res.end() : createReadStream(file).pipe(res);
   }
   if (req.method === "GET" && url.pathname === "/api/state") {
+    let body: string;
+    try {
+      body = JSON.stringify(state());
+    } catch (e) {
+      // a file caught mid-write, or a broken one: say so instead of dropping the request
+      res.writeHead(503, { ...CORS, "content-type": "text/plain", "retry-after": "2" });
+      return res.end("state is being written; try again");
+    }
     res.writeHead(200, { ...CORS, "content-type": "application/json", "cache-control": "no-store" });
-    return res.end(JSON.stringify(state()));
+    return res.end(body);
   }
   if (req.method === "POST" && url.pathname === "/api/demo") {
-    const chunks: Buffer[] = [];
-    for await (const c of req) chunks.push(c as Buffer);
+    let text: string;
+    try {
+      text = await readBody(req, 1024);
+    } catch {
+      res.writeHead(413, CORS);
+      return res.end("request body too large");
+    }
     let kind = "buy";
     let background = false;
     try {
-      const body = JSON.parse(Buffer.concat(chunks).toString() || "{}");
+      const body = JSON.parse(text || "{}");
       kind = body.kind ?? "buy";
       background = body.async === true;
     } catch {}
@@ -248,18 +268,22 @@ createServer(async (req, res) => {
       res.writeHead(429, { ...CORS, "content-type": "text/plain" });
       return res.end("one demo at a time; try again in a minute");
     }
+    if (!demoBudget.take()) {
+      res.writeHead(429, { ...CORS, "content-type": "text/plain" });
+      return res.end("today's demo runs are used up; try again tomorrow (UTC)");
+    }
     lastDemo = Date.now();
     const running = demo(kind);
     if (background) {
       running.then((out) => {
-        demoLog.push({ at: new Date().toISOString(), kind, out });
+        logDemo(kind, out);
         lastDemo = Date.now();
       });
       res.writeHead(202, { ...CORS, "content-type": "application/json" });
       return res.end(JSON.stringify({ id: current?.id, kind }));
     }
     const out = await running;
-    demoLog.push({ at: new Date().toISOString(), kind, out });
+    logDemo(kind, out);
     lastDemo = Date.now();
     res.writeHead(200, { ...CORS, "content-type": "text/plain; charset=utf-8" });
     return res.end(out);
