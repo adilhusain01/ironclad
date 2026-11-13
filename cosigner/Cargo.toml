@@ -31,4 +31,4 @@ zcash_protocol = "=0.11.0"
 # zcash_primitives' builder.
 [dev-dependencies]
 pczt = { version = "=0.10.0", features = ["io-finalizer", "zcp-builder", "signer", "prover", "tx-extractor"] }
-zcash_primitives = { version = "=0.31.0", default-features = false, features = ["std"] }
+zcash_primitives = { version = "=0.31.0", default-features = false, features = ["std", "non-standard-fees"] }
