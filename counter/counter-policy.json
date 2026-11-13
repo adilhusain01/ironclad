@@ -1,6 +1,11 @@
 {
-  "allowed_products": ["airtel-india", "jio-bundles-india", "swiggy-money-india", "test-phone-refill", "test-gift-card-code"],
-  "max_price_per_order": 15000,
+  "max_value": {
+    "airtel-india": 500,
+    "jio-bundles-india": 500,
+    "swiggy-money-india": 500,
+    "test-phone-refill": 10,
+    "test-gift-card-code": 10
+  },
   "max_orders_per_day": 20,
   "min_paid_zat": 1000000,
   "confirmations": 1

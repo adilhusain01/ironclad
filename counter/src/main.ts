@@ -14,12 +14,30 @@ import { OrderStore } from "./orders.js";
 import { Zkool, incomingPayments } from "./zkool.js";
 
 type CounterPolicy = {
-  allowed_products: string[];
-  max_price_per_order: number; // in the API's price unit (satoshis on a BTC account)
+  /**
+   * The products the counter sells, each with the largest face value one order
+   * may have, in the product's own currency (500 means 500 INR for
+   * airtel-india). Face values do not move with BTC; the account's satoshi
+   * prices do.
+   */
+  max_value: Record<string, number>;
   max_orders_per_day: number;
   min_paid_zat: number;
   confirmations: number;
 };
+
+/** Reads the counter's policy, refusing one it could not enforce. */
+export function parsePolicy(text: string): CounterPolicy {
+  const p = JSON.parse(text);
+  const caps = p?.max_value;
+  if (!caps || typeof caps !== "object" || Array.isArray(caps) || Object.keys(caps).length === 0)
+    throw new Error("counter policy: max_value must map each product id to its largest face value");
+  for (const [id, cap] of Object.entries(caps))
+    if (typeof cap !== "number" || !(cap > 0)) throw new Error(`counter policy: max_value for ${id} must be a positive number`);
+  for (const key of ["max_orders_per_day", "min_paid_zat", "confirmations"] as const)
+    if (!Number.isInteger(p[key]) || p[key] < (key === "min_paid_zat" ? 0 : 1)) throw new Error(`counter policy: ${key} must be a positive whole number`);
+  return p as CounterPolicy;
+}
 
 const env = (k: string, fallback?: string) => {
   const v = process.env[k] ?? fallback;
@@ -75,7 +93,9 @@ export async function runOnce(ctx: {
 }
 
 export function checkOrder(memo: OrderMemo, paidZat: number, store: OrderStore, policy: CounterPolicy): string | null {
-  if (!policy.allowed_products.includes(memo.productId)) return `product ${memo.productId} is not on the counter's list`;
+  const cap = Object.hasOwn(policy.max_value, memo.productId) ? policy.max_value[memo.productId] : undefined;
+  if (cap === undefined) return `product ${memo.productId} is not on the counter's list`;
+  if (memo.value > cap) return `value ${memo.value} is over the counter's cap of ${cap} for ${memo.productId}`;
   if (paidZat < policy.min_paid_zat) return `paid ${paidZat} zat, below the minimum ${policy.min_paid_zat}`;
   const today = new Date().toISOString().slice(0, 10);
   const todays = store.all().filter((o) => o.createdAt.startsWith(today) && o.status !== "refused").length;
@@ -84,21 +104,29 @@ export function checkOrder(memo: OrderMemo, paidZat: number, store: OrderStore, 
 }
 
 async function fulfil(txid: string, memo: OrderMemo, ctx: Parameters<typeof runOnce>[0]) {
-  const { bitrefill, store, policy } = ctx;
+  const { bitrefill, store } = ctx;
   let orderRef: string | undefined;
+  let invoiceAsked = false;
   try {
     const product = await bitrefill.product(memo.productId);
     if (product.in_stock === false) return void store.update(txid, { status: "refused", note: "out of stock" });
     const price = packagePrice(product, memo.value);
     if (price === null) return void store.update(txid, { status: "refused", note: `value ${memo.value} is not a package of ${memo.productId}` });
-    if (price > policy.max_price_per_order) return void store.update(txid, { status: "refused", note: `price ${price} is over the counter's cap of ${policy.max_price_per_order}` });
     if (product.recipient_type === "phone_number" && !memo.recipient) return void store.update(txid, { status: "refused", note: "top-up without a phone number" });
+    invoiceAsked = true;
     const invoice = await bitrefill.createInvoice({ productId: memo.productId, value: memo.value, phoneNumber: memo.recipient, autoPay: true });
     orderRef = invoice.orders?.[0]?.id;
     store.update(txid, { status: "buying", invoiceId: invoice.id, orderRef });
     log("bought", txid, "invoice", invoice.id, "order", orderRef, `price ${price}`);
   } catch (e) {
-    const msg = e instanceof BitrefillError ? `${e.httpStatus} ${e.message}` : String(e);
+    // Bitrefill answering with an error means nothing was bought. No answer at
+    // all to the invoice request (a timeout, a dropped connection) may mean it was.
+    const msg =
+      e instanceof BitrefillError
+        ? `${e.httpStatus} ${e.message}`
+        : invoiceAsked
+          ? `no answer to the invoice request (${String(e)}); it may have been bought: check the Bitrefill account by hand`
+          : String(e);
     store.update(txid, { status: "failed", note: msg });
     log("failed", txid, msg);
     return;
@@ -132,7 +160,7 @@ async function main() {
   const groupAccount = Number(env("GROUP_ACCOUNT"));
   const bitrefill = new Bitrefill(env("BITREFILL_API_KEY"), env("BITREFILL_BASE_URL", "https://api.bitrefill.com/v2"));
   const store = new OrderStore(env("ORDERS_PATH", "./orders.json"));
-  const policy = JSON.parse(readFileSync(env("COUNTER_POLICY", "./counter-policy.json"), "utf8")) as CounterPolicy;
+  const policy = parsePolicy(readFileSync(env("COUNTER_POLICY", "./counter-policy.json"), "utf8"));
   // Every order comes from the group, so receipts go back to the group's address.
   const replyTo = env("DEFAULT_RECEIPT_ADDRESS", "");
   const payerReceipt = async (_txid: string, memo: string) => {
