@@ -19,3 +19,4 @@ dist/
 counter/orders.json
 counter/*.pid
 *.pid
+web/dist-preview/

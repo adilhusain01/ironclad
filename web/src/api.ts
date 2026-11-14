@@ -3,7 +3,8 @@
 
 // The API lives beside the page (the dashboard serves both), at https://ironclad.adilhusain.dev.
 // VITE_API_BASE points a build elsewhere, for a copy hosted apart from the server.
-export const API_BASE = (import.meta.env.VITE_API_BASE ?? new URL(".", window.location.href).href).replace(/\/$/, "");
+// Outside a browser (the unit tests) there is no page to sit beside.
+export const API_BASE = (import.meta.env.VITE_API_BASE ?? (typeof window === "undefined" ? "" : new URL(".", window.location.href).href)).replace(/\/$/, "");
 
 export type Payment = [address: string, zat: number];
 

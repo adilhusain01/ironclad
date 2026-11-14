@@ -9,7 +9,8 @@ import "@fontsource-variable/instrument-sans";
 import "@fontsource-variable/jetbrains-mono";
 import "./styles.css";
 import { Footer } from "./Closing.tsx";
-import { button, CheckIcon, CrossIcon, heading, links, Section, SectionHeading, TxLink } from "./pieces.tsx";
+import Dither from "./dither.tsx";
+import { button, CheckIcon, CrossIcon, heading, HOME, links, Section, SectionHeading, SiteHeader, SkipLink, Tile, TxLink, X } from "./pieces.tsx";
 
 const zshield = {
   branch: "https://github.com/adilhusain01/zshield-mcp/tree/ironclad-mode",
@@ -18,6 +19,7 @@ const zshield = {
   tests: "https://github.com/adilhusain01/zshield-mcp/blob/ironclad-mode/tests/ironclad.test.ts",
   upstream: "https://github.com/Steeve-Crypto/zshield-mcp",
   inspectPr: "https://github.com/adilhusain01/ironclad/pull/2",
+  pr: "https://github.com/Steeve-Crypto/zshield-mcp/pull/10",
 };
 
 const APPROVED_TXID = "3202e8ce9d3f0e5008716b8f9a84e69f936f955751493ebb3494f5659dab2b87";
@@ -94,38 +96,63 @@ const trust: string[] = [
 
 function TextLink({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <a href={href} className="font-bold text-ink underline decoration-line underline-offset-4 hover:decoration-ink">
+    <a href={href} className={button.link}>
       {children}
     </a>
   );
 }
 
-function Bar() {
-  return (
-    <header className="flex items-center justify-between gap-4 py-5">
-      <a href="./" className="flex items-center gap-2.5 rounded-md" aria-label="Ironclad home">
-        <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width={26} height={26} />
-        <span className="font-heading text-[1.5rem] font-semibold tracking-[-0.01em]">Ironclad</span>
-      </a>
-      <a href={zshield.branch} className={button.outline}>
-        Source
-      </a>
-    </header>
-  );
-}
+const termTone = { faint: "text-term-faint", green: "text-term-green", red: "text-term-red", orange: "text-term-orange" };
 
 function Hero() {
   return (
-    <section className="pt-10 pb-20 sm:pt-16">
-      <h1 className={`max-w-[15ch] ${heading.hero}`}>An agent's spending cap, enforced by a second key.</h1>
-      <p className="mt-8 max-w-[60ch] text-[1.15rem] leading-[1.6] text-ink-soft">
-        zshield-mcp gives any MCP client a <code className="font-mono text-[0.95em]">zcash_pay</code> tool with a spending cap, a recipient allow-list and an audit log. With <code className="font-mono text-[0.95em]">CHAIN_MODE=ironclad</code>, the wallet behind that tool is an Ironclad 2-of-3 FROST group. zshield holds one key share and the owner's co-signer holds another, so a payment goes out only when zshield's checks and the owner's policy both allow it.
-      </p>
-      <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-3">
-        <a href="#run" className={button.primary}>
-          See the live run
-        </a>
-        <TextLink href={zshield.readme}>Read the docs</TextLink>
+    <section className="relative isolate overflow-hidden">
+      <div aria-hidden="true" className="absolute inset-0 -z-10 opacity-70">
+        <Dither
+          waveColor={[0.74, 0.77, 0.74]}
+          backgroundColor={[0.933, 0.941, 0.925]}
+          colorNum={4}
+          pixelSize={3}
+          waveSpeed={0.02}
+          waveFrequency={2.6}
+          waveAmplitude={0.32}
+          enableMouseInteraction={false}
+          intro={false}
+        />
+      </div>
+      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,var(--color-paper)_0%,transparent_50%)] md:bg-[linear-gradient(90deg,var(--color-paper)_12%,transparent_62%)]" />
+      <SiteHeader
+        source={zshield.branch}
+        nav={[
+          { href: "#checks", label: "Two checks" },
+          { href: "#run", label: "Live runs" },
+          { href: "#code", label: "Run it" },
+          { href: HOME, label: "Ironclad" },
+        ]}
+      />
+      <div className={`${X} grid min-h-svh items-center gap-14 pt-28 pb-20 lg:grid-cols-[1fr_1.05fr] lg:pt-24`}>
+        <div className="min-w-0">
+          <h1 className={`max-w-[13ch] ${heading.hero}`}>Spending caps, held by a second key.</h1>
+          <p className="mt-7 max-w-[36ch] text-xl leading-snug text-pretty text-ink-soft sm:text-2xl">
+            zshield-mcp's <code className="font-mono text-[0.9em]">zcash_pay</code> tool on an Ironclad 2‑of‑3 wallet. zshield holds one share, the owner's co-signer another, and a payment needs both.
+          </p>
+          <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-4">
+            <a href="#run" className={button.primary}>
+              See the live runs
+            </a>
+            <TextLink href={zshield.readme}>Read the docs</TextLink>
+          </div>
+        </div>
+        <figure className="min-w-0 overflow-hidden rounded-[16px] bg-term" aria-label="What the MCP client got back from three zcash_pay calls">
+          <figcaption className="border-b border-term-line px-4 py-3 font-mono text-[0.78rem] text-term-faint">zcash_pay, as the MCP client got it, 14 November 2026 (trimmed)</figcaption>
+          <pre className="px-4 py-4 font-mono text-[0.76rem] leading-[1.7] text-term-ink sm:text-[0.8rem]">
+            {runLines.map((line, index) => (
+              <div key={index} className={`whitespace-pre-wrap [overflow-wrap:anywhere] ${line.tone ? termTone[line.tone] : ""}`}>
+                {line.text || " "}
+              </div>
+            ))}
+          </pre>
+        </figure>
       </div>
     </section>
   );
@@ -133,24 +160,20 @@ function Hero() {
 
 function Checks() {
   return (
-    <Section id="checks">
-      <SectionHeading title="Two checks, two keys">
-        Each side checks the payment on its own and holds its own share. The owner keeps the third share offline, to recover the funds or overrule the co-signer.
-      </SectionHeading>
-      <div className="mt-12 grid gap-x-16 gap-y-10 md:grid-cols-2">
+    <Section id="checks" label="checks-title">
+      <SectionHeading id="checks-title" title="Two checks, two keys." line="Each side checks the payment on its own and holds its own share. The owner keeps the third offline." />
+      <div className="grid gap-4 md:grid-cols-2">
         {checks.map((side) => (
-          <div key={side.title} className="min-w-0">
-            <h3 className="font-heading text-[1.6rem] font-semibold tracking-[-0.01em]">{side.title}</h3>
-            <p className="mt-1 font-mono text-[0.85rem] text-ink-faint">{side.share}</p>
-            <ul className="mt-5 flex flex-col">
+          <Tile key={side.title} title={side.title} line={side.share}>
+            <ul className="flex w-full flex-col rounded-[12px] border border-line-soft bg-paper px-4 py-1">
               {side.items.map((item) => (
-                <li key={item} className="flex gap-3 border-t border-line py-3 leading-[1.5] text-ink-soft last:border-b">
+                <li key={item} className="flex gap-3 border-b border-line-soft py-2.5 leading-[1.5] last:border-b-0">
                   <CheckIcon size={16} className="mt-1 shrink-0 text-positive" />
                   <span>{item}</span>
                 </li>
               ))}
             </ul>
-          </div>
+          </Tile>
         ))}
       </div>
     </Section>
@@ -159,16 +182,16 @@ function Checks() {
 
 function Steps() {
   return (
-    <Section id="steps">
-      <SectionHeading title="One payment, step by step">
-        A failure before the last step means nothing was sent. A failure during the broadcast is reported as unknown, with the recorded txid, until the wallet sees that txid mined.
-      </SectionHeading>
-      <ol className="mt-12 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-5">
+    <Section id="steps" label="steps-title">
+      <SectionHeading id="steps-title" title="One payment, step by step." line="A failure before the last step means nothing was sent. A failure during the broadcast is reported as unknown, with the recorded txid." />
+      <ol className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-5">
         {steps.map((step, index) => (
-          <li key={step.title} className="flex min-w-0 flex-col gap-2 border-t border-ink pt-4">
-            <span className="font-mono text-[0.85rem] text-signal-deep">{String(index + 1).padStart(2, "0")}</span>
-            <span className="font-bold">{step.title}</span>
-            <span className="leading-[1.55] text-ink-soft">{step.line}</span>
+          <li key={step.title} className="flex min-w-0 flex-col border-t-2 border-ink pt-5">
+            <span className="font-heading text-[3rem] leading-none font-extrabold text-signal" aria-hidden="true">
+              {index + 1}
+            </span>
+            <span className="mt-3 font-heading text-[1.3rem] leading-tight font-bold tracking-[-0.01em]">{step.title}</span>
+            <span className="mt-2 leading-[1.6] text-ink-soft">{step.line}</span>
           </li>
         ))}
       </ol>
@@ -178,68 +201,52 @@ function Steps() {
 
 function Decision({ allowed, title, line, at, hash, prev, children }: { allowed: boolean; title: string; line: string; at?: string; hash?: string; prev?: string; children?: ReactNode }) {
   return (
-    <div className="flex min-w-0 flex-col gap-2 border-t border-line py-6 last:border-b">
-      <div className="flex items-center gap-2.5">
-        <span className={`grid size-6 shrink-0 place-items-center rounded-sm ${allowed ? "bg-positive text-paper" : "bg-danger text-paper"}`}>
-          {allowed ? <CheckIcon size={14} /> : <CrossIcon size={14} />}
-        </span>
-        <span className="text-[1.05rem] font-bold">{title}</span>
-      </div>
+    <article className="flex min-w-0 flex-col gap-3 rounded-[20px] border border-line-soft bg-sheet p-6 sm:p-8">
+      <span className={`flex items-center gap-2 font-bold ${allowed ? "text-positive" : "text-danger"}`}>
+        {allowed ? <CheckIcon size={18} /> : <CrossIcon size={18} />}
+        {allowed ? "Co-signed" : "Refused"}
+      </span>
+      <h3 className="font-heading text-[1.45rem] leading-[1.15] font-bold tracking-[-0.015em]">{title}</h3>
       <p className="leading-[1.6] text-ink-soft">{line}</p>
       {children}
       {at && hash && (
-        <p className="flex flex-wrap gap-x-3 font-mono text-[0.8rem] text-ink-faint">
-          <span>co-signer ledger {at}</span>
+        <p className="mt-auto flex flex-col gap-0.5 border-t border-line-soft pt-3 font-mono text-[0.75rem] text-ink-faint">
+          <span>ledger {at}</span>
           <span>hash {hash.slice(0, 16)}…</span>
           {prev && <span>prev {prev.slice(0, 16)}…</span>}
         </p>
       )}
-    </div>
+    </article>
   );
 }
 
 function Run() {
-  const tone = { faint: "text-term-faint", green: "text-term-green", red: "text-term-red", orange: "text-term-orange" };
   return (
-    <Section id="run">
-      <SectionHeading title="The live runs">
-        zshield-mcp ran as an MCP server over stdio, the way an MCP host starts it, against the Ironclad co-signer on testnet, on 14 November 2026 (UTC). The owner's policy caps one payment at 0.2 TAZ.
-      </SectionHeading>
-      <div className="mt-12 grid gap-x-16 gap-y-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-        <div className="flex min-w-0 flex-col">
-          <Decision
-            allowed
-            title="0.001 TAZ to the counter, co-signed"
-            line="Inside both sets of rules. Mined in testnet block 4,618,918 with a 0.0001 TAZ fee."
-            at="2026-11-14T09:20:16Z"
-            hash="ebf4d378eb3da7d9665744e96aec7fd24e34e4c4775f6dbc4a837d5d1bb5df76"
-          >
-            <TxLink txid={APPROVED_TXID} />
-          </Decision>
-          <Decision
-            allowed={false}
-            title="0.21 TAZ to the same counter, refused at the key"
-            line="zshield's cap was raised to 0.25 TAZ, so zshield's checks passed. The co-signer refused: 21000000 zat is above its per-payment cap of 20000000 zat. Without its share no signature exists, so there is no transaction."
-            at="2026-11-14T09:20:59Z"
-            hash="84c59e93b1147ae498b11e0afc16e2797b30c9a2980c4debcbf654fb2d30651f"
-            prev="ebf4d378eb3da7d9665744e96aec7fd24e34e4c4775f6dbc4a837d5d1bb5df76"
-          />
-          <Decision
-            allowed={false}
-            title="0.001 TAZ with the co-signer offline, refused"
-            line="Later the same day, zshield pointed at a session folder no co-signer watches. The signing round waited two minutes, then the call ended as not sent. Nothing reached a co-signer, so there is no ledger line, and no signature or transaction exists."
-          />
-        </div>
-        <div className="min-w-0 self-start overflow-hidden rounded-xl bg-term">
-          <div className="border-b border-term-line px-4 py-3 font-mono text-[0.8rem] text-term-faint">zcash_pay, as the MCP client got it (trimmed)</div>
-          <pre className="px-4 py-4 font-mono text-[0.8rem] leading-[1.7] text-term-ink">
-            {runLines.map((line, index) => (
-              <div key={index} className={`whitespace-pre-wrap [overflow-wrap:anywhere] ${line.tone ? tone[line.tone] : ""}`}>
-                {line.text || " "}
-              </div>
-            ))}
-          </pre>
-        </div>
+    <Section id="run" label="run-title">
+      <SectionHeading id="run-title" title="The live runs." line="zshield-mcp over stdio, as an MCP host starts it, against the co-signer on testnet. The owner's policy caps one payment at 0.2 TAZ." />
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Decision
+          allowed
+          title="0.001 TAZ to the counter"
+          line="Inside both sets of rules. Mined in testnet block 4,618,918 with a 0.0001 TAZ fee."
+          at="2026-11-14T09:20:16Z"
+          hash="ebf4d378eb3da7d9665744e96aec7fd24e34e4c4775f6dbc4a837d5d1bb5df76"
+        >
+          <TxLink txid={APPROVED_TXID} />
+        </Decision>
+        <Decision
+          allowed={false}
+          title="0.21 TAZ, refused at the key"
+          line="zshield's cap was raised to 0.25 TAZ, so its checks passed. The co-signer's cap is 0.2 TAZ, so it refused, and without its share no signature exists."
+          at="2026-11-14T09:20:59Z"
+          hash="84c59e93b1147ae498b11e0afc16e2797b30c9a2980c4debcbf654fb2d30651f"
+          prev="ebf4d378eb3da7d9665744e96aec7fd24e34e4c4775f6dbc4a837d5d1bb5df76"
+        />
+        <Decision
+          allowed={false}
+          title="0.001 TAZ, co-signer offline"
+          line="No co-signer watched the session folder. The signing round waited two minutes, then the call ended as not sent. No ledger line, no signature, no transaction."
+        />
       </div>
     </Section>
   );
@@ -247,19 +254,25 @@ function Run() {
 
 function RunIt() {
   return (
-    <Section id="code">
-      <SectionHeading title="Run it">
-        It needs zcash-devtool from October 2026 or later, the group wallet imported from its viewing key, and an ironclad-cosigner build with <code className="font-mono text-[0.95em]">inspect --json</code>. The owner's co-signer runs as a daemon watching the session folder.
-      </SectionHeading>
-      <div className="mt-10 grid gap-x-16 gap-y-10 lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
-        <pre className="min-w-0 self-start overflow-x-auto rounded-xl bg-term px-4 py-4 font-mono text-[0.8rem] leading-[1.7] text-term-ink">{setup}</pre>
+    <Section id="code" label="code-title">
+      <SectionHeading
+        id="code-title"
+        title="Run it."
+        line={
+          <>
+            zcash-devtool from October 2026, the group wallet imported from its viewing key, and an ironclad-cosigner with <code className="font-mono text-[0.9em]">inspect --json</code>.
+          </>
+        }
+      />
+      <div className="grid gap-x-16 gap-y-10 lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
+        <pre className="min-w-0 self-start overflow-x-auto rounded-[16px] bg-term px-4 py-4 font-mono text-[0.8rem] leading-[1.7] text-term-ink">{setup}</pre>
         <ul className="flex flex-col">
           {[
             { href: zshield.readme, label: "The Ironclad mode docs", line: "Every setting, the staged send and its limits." },
-            { href: zshield.adapter, label: "The adapter", line: "src/chain/ironclad.ts in zshield-mcp, branch ironclad-mode." },
-            { href: zshield.tests, label: "The tests", line: "19 tests; ten deliberate breaks of the adapter each fail one." },
+            { href: zshield.adapter, label: "The adapter", line: "src/chain/ironclad.ts in zshield-mcp." },
+            { href: zshield.tests, label: "The tests", line: "21 tests; thirteen deliberate breaks of the adapter each fail one." },
+            { href: zshield.pr, label: "The pull request", line: "Steeve-Crypto/zshield-mcp pull request 10." },
             { href: zshield.inspectPr, label: "inspect --json", line: "The co-signer output zshield reads, Ironclad pull request 2." },
-            { href: zshield.upstream, label: "zshield-mcp upstream", line: "By Steeve, who set this milestone." },
           ].map((item) => (
             <li key={item.href} className="flex flex-col gap-1 border-t border-line py-4 last:border-b">
               <TextLink href={item.href}>{item.label}</TextLink>
@@ -274,30 +287,58 @@ function RunIt() {
 
 function Trust() {
   return (
-    <Section id="trust">
-      <SectionHeading title="What to trust, and what not" />
-      <ul className="mt-10 flex max-w-[72ch] flex-col">
-        {trust.map((item) => (
-          <li key={item} className="border-t border-line py-4 leading-[1.6] text-ink-soft last:border-b">
-            {item}
-          </li>
-        ))}
-      </ul>
-      <p className="mt-8 text-ink-soft">
-        The rest of Ironclad, its live demo and the co-signer's latest decisions are on the <TextLink href="./">main page</TextLink>. Source: <TextLink href={links.github}>Ironclad</TextLink> and{" "}
-        <TextLink href={zshield.branch}>zshield-mcp</TextLink>.
-      </p>
-    </Section>
+    <section id="trust" aria-labelledby="trust-title" className="relative isolate overflow-hidden bg-ink py-24 text-paper sm:py-32">
+      <div aria-hidden="true" className="absolute inset-0 -z-10 opacity-60">
+        <Dither
+          waveColor={[0.2, 0.235, 0.255]}
+          backgroundColor={[0.086, 0.106, 0.118]}
+          colorNum={3}
+          brightness={-0.12}
+          contrast={1.25}
+          pixelSize={3}
+          waveSpeed={0.015}
+          waveFrequency={2.2}
+          waveAmplitude={0.3}
+          enableMouseInteraction={false}
+          intro={false}
+        />
+      </div>
+      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,var(--color-ink)_25%,transparent_90%)]" />
+      <div className={X}>
+        <h2 id="trust-title" className={`max-w-[14ch] ${heading.section}`}>
+          What to trust, and what not.
+        </h2>
+        <ul className="mt-14 grid max-w-[72rem] gap-x-12 sm:grid-cols-2">
+          {trust.map((item) => (
+            <li key={item} className="border-t border-term-line py-5 leading-[1.6] text-paper-3/85">
+              {item}
+            </li>
+          ))}
+        </ul>
+        <p className="mt-10 text-paper-3">
+          The live demo and the co-signer's latest decisions are on the{" "}
+          <a href={HOME} className="font-bold text-paper underline decoration-paper/30 decoration-2 underline-offset-[6px] hover:decoration-paper">
+            main page
+          </a>
+          . Source:{" "}
+          <a href={links.github} className="font-bold text-paper underline decoration-paper/30 decoration-2 underline-offset-[6px] hover:decoration-paper">
+            Ironclad
+          </a>{" "}
+          and{" "}
+          <a href={zshield.branch} className="font-bold text-paper underline decoration-paper/30 decoration-2 underline-offset-[6px] hover:decoration-paper">
+            zshield-mcp
+          </a>
+          .
+        </p>
+      </div>
+    </section>
   );
 }
 
 function Page() {
   return (
-    <div className="mx-auto w-full max-w-[1240px] px-5 sm:px-8">
-      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:rounded-lg focus:bg-paper focus:px-3 focus:py-2">
-        Skip to the content
-      </a>
-      <Bar />
+    <>
+      <SkipLink />
       <main id="main">
         <Hero />
         <Checks />
@@ -307,7 +348,7 @@ function Page() {
         <Trust />
       </main>
       <Footer />
-    </div>
+    </>
   );
 }
 

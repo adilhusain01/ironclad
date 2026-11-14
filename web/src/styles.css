@@ -10,10 +10,12 @@
   --color-paper: #eef0ec;
   --color-paper-2: #e5e8e3;
   --color-paper-3: #d9ddd6;
+  /* Tiles and the hero's cards: a lighter sheet laid on the paper. */
+  --color-sheet: #f8f9f6;
   --color-ink: #161b1e;
   --color-ink-hover: #262d32;
   --color-ink-soft: #444c51;
-  --color-ink-faint: #6b757b;
+  --color-ink-faint: #5e686e; /* 4.97:1 on paper, 5.4:1 on sheet */
   --color-line: #c7cdc6;
   --color-line-soft: #d8ddd6;
   --color-signal: #d4541c;
@@ -42,6 +44,9 @@
   --radius-xl: 16px;
 
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+
+  /* Only pressable things cast a shadow. */
+  --shadow-key: 0 1px 0 rgb(22 27 30 / 0.14), 0 10px 22px -12px rgb(22 27 30 / 0.6);
 }
 
 @layer base {
@@ -87,6 +92,57 @@
 }
 .press:active:not(:disabled) {
   scale: 0.97;
+}
+
+/* A key you press: it sits on a shadow and sinks into it. */
+.key {
+  box-shadow: var(--shadow-key);
+  transition:
+    translate 150ms var(--ease-out-strong),
+    box-shadow 150ms var(--ease-out-strong),
+    background-color 150ms var(--ease-out-strong);
+}
+.key:active:not(:disabled) {
+  translate: 0 1px;
+  box-shadow: 0 0 0 rgb(22 27 30 / 0);
+}
+
+/* The hero demo: the agent's words type in, each rule is checked in turn, and the progress bar fills. */
+@keyframes typed {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+.typed {
+  animation: typed var(--type, 1000ms) steps(var(--chars, 30), end) both;
+}
+@keyframes beat-fill {
+  from {
+    scale: 0 1;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+.beat-fill {
+  transform-origin: left;
+  animation: beat-fill var(--beat, 5000ms) linear both;
+}
+@keyframes arrive {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+.arrive {
+  animation: arrive 260ms var(--ease-out-strong) both;
 }
 
 /* The live demo, full screen on a stage: the panel fills the screen on paper, a quarter larger. */

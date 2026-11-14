@@ -1,7 +1,7 @@
 // The demo video and the transactions anyone can check through testnet.zec.rocks.
 
 import { API_BASE } from "./api.ts";
-import { links, Section, SectionHeading, TxLink } from "./pieces.tsx";
+import { button, links, Section, SectionHeading, TxLink } from "./pieces.tsx";
 
 // The demo on YouTube; with no id the recording plays from the server instead.
 const YOUTUBE_ID = "8QMsMO8Dx6E";
@@ -28,7 +28,7 @@ const proofs: { title: string; line: string; txid?: string; extra?: React.ReactN
     line: "zshield-mcp's zcash_pay tool on this wallet: one payment co-signed, one refused at the key after zshield's own checks let it through.",
     txid: "3202e8ce9d3f0e5008716b8f9a84e69f936f955751493ebb3494f5659dab2b87",
     extra: (
-      <a href="zshield.html" className="text-sm font-bold text-ink underline decoration-line underline-offset-4 hover:decoration-ink">
+      <a href="zshield.html" className={`text-sm ${button.link}`}>
         See the zshield-mcp run
       </a>
     ),
@@ -37,7 +37,7 @@ const proofs: { title: string; line: string; txid?: string; extra?: React.ReactN
     title: "Refusals leave nothing on chain",
     line: "An over-cap payment and a payment to a stranger were refused at the key. No signature exists, so there is no transaction to show.",
     extra: (
-      <a href="#record" className="text-sm font-bold text-ink underline decoration-line underline-offset-4 hover:decoration-ink">
+      <a href="#record" className={`text-sm ${button.link}`}>
         See them in the co-signer's log
       </a>
     ),
@@ -46,12 +46,10 @@ const proofs: { title: string; line: string; txid?: string; extra?: React.ReactN
 
 export function Proof() {
   return (
-    <Section id="proof">
-      <SectionHeading title="Check it on the chain">
-        Every claim here has a testnet transaction or a log entry behind it. Each link looks the transaction up live through testnet.zec.rocks, the server Stadium uses.
-      </SectionHeading>
-      <div className="mt-12 grid gap-x-16 gap-y-10 lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
-        <div id="video" className="scroll-mt-8 self-start overflow-hidden rounded-xl bg-term">
+    <Section id="proof" label="proof-title">
+      <SectionHeading id="proof-title" title="Check it on the chain." line="Each link looks the transaction up live through testnet.zec.rocks." />
+      <div className="grid gap-x-16 gap-y-10 lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
+        <div id="video" className="scroll-mt-8 self-start overflow-hidden rounded-[20px] bg-term">
           {YOUTUBE_ID ? (
             <iframe
               className="aspect-video w-full"
@@ -79,13 +77,13 @@ export function Proof() {
           ))}
         </dl>
       </div>
-      <p className="mt-8 text-ink-soft">
+      <p className="mt-10 text-ink-soft">
         Built on{" "}
-        <a href={links.frostZec} className="font-bold text-ink underline decoration-line underline-offset-4 hover:decoration-ink">
+        <a href={links.frostZec} className={button.link}>
           frost-zec
         </a>
         . The policy mode is proposed back to it in{" "}
-        <a href={links.frostIssue} className="font-bold text-ink underline decoration-line underline-offset-4 hover:decoration-ink">
+        <a href={links.frostIssue} className={button.link}>
           issue 1
         </a>
         .

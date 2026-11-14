@@ -36,20 +36,20 @@ export function Console({ state, error, refresh }: { state: State | null; error:
   };
 
   return (
-    <div ref={panel} className="demo-panel overflow-auto rounded-xl border border-line bg-paper-2/70 text-left">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
-        <div>
-          <h3 className="font-heading text-[1.5rem] leading-tight font-semibold tracking-[-0.01em]">Live demo</h3>
-          <p className="text-sm text-ink-soft">Each key runs the real agent and co-signer on Zcash testnet.</p>
-        </div>
-        <button type="button" onClick={full.toggle} className="press inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg px-4 text-sm font-bold text-ink shadow-[inset_0_0_0_1.5px_var(--color-ink)] hover:bg-ink/[0.06]">
+    <div ref={panel} className="demo-panel overflow-auto rounded-[20px] border border-line-soft bg-sheet text-left">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-soft px-5 py-3.5 sm:px-6">
+        <span className="flex items-center gap-2.5 text-sm font-bold text-ink-soft">
+          <span className={`size-2 rounded-full ${error && !state ? "bg-danger" : "bg-positive"}`} aria-hidden="true" />
+          {error && !state ? "The live server can't be reached" : "Live on Zcash testnet"}
+        </span>
+        <button type="button" onClick={full.toggle} className="press inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg px-3.5 text-sm font-bold text-ink shadow-[inset_0_0_0_1.5px_var(--color-line)] hover:shadow-[inset_0_0_0_1.5px_var(--color-ink)]">
           <FullscreenIcon exit={full.on} />
           {full.on ? "Exit full screen" : "Full screen"}
         </button>
       </div>
 
       <div className="grid lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
-        <div className="flex flex-col gap-6 border-b border-line p-5 lg:border-r lg:border-b-0">
+        <div className="flex flex-col gap-6 border-b border-line-soft p-5 sm:p-6 lg:border-r lg:border-b-0">
           <div className="flex flex-col gap-2">
             {asks.map((item, index) => (
               <button
@@ -57,8 +57,8 @@ export function Console({ state, error, refresh }: { state: State | null; error:
                 type="button"
                 disabled={running || readyIn > 0 || !state}
                 onClick={() => ask(item.kind)}
-                className={`press flex cursor-pointer items-start gap-3 rounded-lg px-4 py-3.5 text-left disabled:cursor-not-allowed ${
-                  active === item.kind ? "bg-ink text-paper" : "shadow-[inset_0_0_0_1.5px_var(--color-line)] hover:shadow-[inset_0_0_0_1.5px_var(--color-ink)] disabled:opacity-50"
+                className={`key flex cursor-pointer items-start gap-3 rounded-[12px] px-4 py-3.5 text-left disabled:cursor-not-allowed ${
+                  active === item.kind ? "bg-ink text-paper" : "bg-paper hover:bg-paper-2 disabled:opacity-50 disabled:shadow-none"
                 }`}
               >
                 <span className={`font-heading text-[1.6rem] leading-none font-semibold ${active === item.kind ? "text-signal" : "text-ink-faint"}`}>{index + 1}</span>
@@ -70,12 +70,12 @@ export function Console({ state, error, refresh }: { state: State | null; error:
             ))}
           </div>
           <p className="text-sm text-ink-soft" aria-live="polite">
-            {message ?? (running ? "The agent is working." : readyIn > 0 ? `Ready again in ${readyIn} s.` : "Press a key. A run takes 15 to 30 seconds.")}
+            {message ?? (running ? "The agent is working." : readyIn > 0 ? `Ready again in ${readyIn} s.` : "Pick one. Anyone on this page sees the same run.")}
           </p>
           <Rules state={state} />
         </div>
 
-        <div className="flex min-w-0 flex-col gap-5 p-5">
+        <div className="flex min-w-0 flex-col gap-5 p-5 sm:p-6">
           <Terminal run={run} error={error} />
           {run && <Verdict run={run} order={orderOf(run, state?.orders ?? [])} />}
         </div>
@@ -98,18 +98,18 @@ function Rules({ state }: { state: State | null }) {
     <div className="flex flex-col">
       <span className="pb-2 text-sm text-ink-soft">Your rules, held by the co-signer</span>
       {rows.map(([label, value]) => (
-        <div key={label} className="flex items-baseline justify-between gap-3 border-t border-line py-2.5">
+        <div key={label} className="flex items-baseline justify-between gap-3 border-t border-line-soft py-2.5">
           <span className="text-sm text-ink-soft">{label}</span>
           <span className="text-right font-mono text-[0.85rem]">{value}</span>
         </div>
       ))}
       {policy && spent !== null && (
-        <div className="flex items-baseline justify-between gap-3 border-t border-line py-2.5">
+        <div className="flex items-baseline justify-between gap-3 border-t border-line-soft py-2.5">
           <span className="text-sm text-ink-soft">Let through today</span>
           <span className="font-mono text-[0.85rem]">{TAZ(spent)}</span>
         </div>
       )}
-      {!policy && <span className="border-t border-line py-2.5 text-sm text-ink-faint">Loading the rules</span>}
+      {!policy && <span className="border-t border-line-soft py-2.5 text-sm text-ink-faint">Loading the rules</span>}
     </div>
   );
 }
@@ -130,7 +130,7 @@ function Terminal({ run, error }: { run: Run | null; error: string | null }) {
   const ask = asks.find((item) => item.kind === run?.kind);
   const status = !run ? "idle" : run.done ? `finished ${ago(run.endedAt ?? run.startedAt)}` : "running";
   return (
-    <div className="flex min-w-0 flex-col overflow-hidden rounded-lg bg-term">
+    <div className="flex min-w-0 flex-col overflow-hidden rounded-[12px] bg-term">
       <div className="flex items-center justify-between gap-3 border-b border-term-line px-4 py-2.5 font-mono text-[0.8rem]">
         <span className="text-term-ink">{ask ? ask.title : "agent on the VPS"}</span>
         <span className={status === "running" ? "text-term-orange" : "text-term-faint"}>{status}</span>
@@ -185,7 +185,7 @@ function Verdict({ run, order }: { run: Run; order?: Order }) {
             ? "Signed and sent, but Bitrefill couldn't fill the order."
             : "Signed by two of three shares and sent. The counter buys once the block lands.";
   return (
-    <div className={`flex flex-col gap-2 rounded-lg px-4 py-3.5 ${tone.box}`}>
+    <div className={`flex flex-col gap-2 rounded-[12px] px-4 py-3.5 ${tone.box}`}>
       <span className="flex items-center gap-3 font-bold">
         {tone.icon}
         <span>{text}</span>

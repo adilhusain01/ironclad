@@ -1,55 +1,67 @@
-// The bar along the top and the hero, whose demo is the live agent itself.
+// The hero, over a slow dithered field in the paper's own grey, with the co-signer demo beside the words;
+// then the live demo, where each key runs the real agent.
 
 import { Console } from "./Console.tsx";
-import { button, heading, links } from "./pieces.tsx";
+import Dither from "./dither.tsx";
+import { HeroDemo } from "./HeroDemo.tsx";
+import { button, heading, links, Section, SectionHeading, SiteHeader, X } from "./pieces.tsx";
 import type { useLive } from "./useLive.ts";
 
-export function TopBar() {
-  const item = "hidden rounded-md px-3 py-2 text-[0.95rem] text-ink-soft transition-colors duration-150 hover:text-ink sm:block";
+export function Hero() {
   return (
-    <header className="flex items-center justify-between gap-4 py-5">
-      <a href="./" className="flex items-center gap-2.5 rounded-md" aria-label="Ironclad home">
-        <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width={26} height={26} />
-        <span className="font-heading text-[1.5rem] font-semibold tracking-[-0.01em]">Ironclad</span>
-      </a>
-      <nav aria-label="Main" className="flex items-center gap-1">
-        <a href="#how" className={item}>
-          How it works
-        </a>
-        <a href="#record" className={item}>
-          Decisions
-        </a>
-        <a href="#proof" className={item}>
-          Proof
-        </a>
-        <a href={links.github} className={`${button.outline} ml-2`}>
-          Source
-        </a>
-      </nav>
-    </header>
+    <section className="relative isolate overflow-hidden">
+      {/* React Bits Dither: a darker shade of the concrete paper, drifting under everything. */}
+      <div aria-hidden="true" className="absolute inset-0 -z-10 opacity-70">
+        <Dither
+          waveColor={[0.74, 0.77, 0.74]}
+          backgroundColor={[0.933, 0.941, 0.925]}
+          colorNum={4}
+          pixelSize={3}
+          waveSpeed={0.02}
+          waveFrequency={2.6}
+          waveAmplitude={0.32}
+          enableMouseInteraction={false}
+          intro={false}
+        />
+      </div>
+      {/* Plain paper behind the words, so they read on any frame of the field. */}
+      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,var(--color-paper)_0%,transparent_50%)] md:bg-[linear-gradient(90deg,var(--color-paper)_12%,transparent_62%)]" />
+
+      <SiteHeader
+        nav={[
+          { href: "#try", label: "Live demo" },
+          { href: "#how", label: "How it works" },
+          { href: "#record", label: "Decisions" },
+          { href: "#proof", label: "Proof" },
+        ]}
+      />
+
+      <div className={`${X} grid min-h-svh items-center gap-14 pt-28 pb-20 md:grid-cols-[1.15fr_1fr] md:pt-24`}>
+        <div className="min-w-0">
+          <h1 className={`max-w-[13ch] ${heading.hero}`}>Spending limits, built into the key.</h1>
+          <p className="mt-7 max-w-[34ch] text-xl leading-snug text-pretty text-ink-soft sm:text-2xl">
+            An AI agent pays from a shielded Zcash wallet. A co-signer holds your rules and a second key, and signs nothing outside them.
+          </p>
+          <div className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-4">
+            <a href="#try" className={button.primary}>
+              Try it live
+            </a>
+            <a href={links.video} className={button.link}>
+              Watch the demo
+            </a>
+          </div>
+        </div>
+        <HeroDemo />
+      </div>
+    </section>
   );
 }
 
-export function Hero({ live }: { live: ReturnType<typeof useLive> }) {
+export function TryIt({ live }: { live: ReturnType<typeof useLive> }) {
   return (
-    <section className="pt-10 pb-20 sm:pt-16">
-      <h1 className={`max-w-[14ch] ${heading.hero}`}>Spending limits for AI agents, built into the key.</h1>
-      <div className="mt-8 grid items-end gap-x-14 gap-y-8 lg:grid-cols-[minmax(0,1fr)_auto]">
-        <p className="max-w-[56ch] text-[1.15rem] leading-[1.6] text-ink-soft">
-          Ironclad guards a private Zcash wallet that an AI agent spends from. The key is split three ways: the agent holds one share, a co-signer holds the second with your rules, and you keep the third offline. Outside your rules, a payment can't be signed, whatever the agent is told.
-        </p>
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-          <a href="#try" className={button.primary}>
-            Try it live
-          </a>
-          <a href={links.video} className="font-bold text-ink underline decoration-transparent underline-offset-4 hover:decoration-ink">
-            Watch the demo
-          </a>
-        </div>
-      </div>
-      <div id="try" className="mt-14 scroll-mt-6">
-        <Console state={live.state} error={live.error} refresh={live.refresh} />
-      </div>
-    </section>
+    <Section id="try" label="try-title">
+      <SectionHeading id="try-title" title="Press a key. The agent runs for real." line="The real agent and co-signer, on Zcash testnet. A run takes 15 to 30 seconds." />
+      <Console state={live.state} error={live.error} refresh={live.refresh} />
+    </Section>
   );
 }

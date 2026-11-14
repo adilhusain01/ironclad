@@ -8,11 +8,9 @@ import { humanReason } from "./run.ts";
 export function Record({ state }: { state: State | null }) {
   const labels = recipientLabels(state);
   return (
-    <Section id="record">
-      <SectionHeading title="Every decision is on the record">
-        The co-signer writes each one to a hash-chained log before its share leaves. The counter logs what it bought. Both lists are live.
-      </SectionHeading>
-      <div className="mt-12 grid gap-x-16 gap-y-12 lg:grid-cols-2">
+    <Section id="record" label="record-title">
+      <SectionHeading id="record-title" title="Every decision, on the record." line="Live from the co-signer's chained log and the counter's orders." />
+      <div className="grid gap-4 lg:grid-cols-2">
         <List title="Co-signer decisions" note={state ? `${state.ledger.length} most recent` : undefined}>
           {state?.ledger.length === 0 && <Empty text="No decisions yet. Press a key above to make one." />}
           {state?.ledger.map((entry, index) => <Decision key={entry.hash ?? `${entry.at}-${index}`} entry={entry} labels={labels} />)}
@@ -45,18 +43,18 @@ function recipientLabels(state: State | null): Map<string, string> {
 
 function List({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
   return (
-    <div className="flex min-w-0 flex-col">
-      <div className="flex items-baseline justify-between gap-3 pb-3">
-        <h3 className="font-heading text-[1.5rem] leading-tight font-semibold tracking-[-0.01em]">{title}</h3>
+    <div className="flex min-w-0 flex-col overflow-hidden rounded-[20px] border border-line-soft bg-sheet">
+      <div className="flex items-baseline justify-between gap-3 px-6 pt-6 pb-4 sm:px-8 sm:pt-8">
+        <h3 className="font-heading text-[1.6rem] leading-tight font-bold tracking-[-0.015em]">{title}</h3>
         {note && <span className="text-sm text-ink-faint">{note}</span>}
       </div>
-      <ul className="max-h-[560px] overflow-auto border-b border-line">{children}</ul>
+      <ul className="max-h-[560px] overflow-auto px-6 pb-2 sm:px-8">{children}</ul>
     </div>
   );
 }
 
 function Empty({ text }: { text: string }) {
-  return <li className="border-t border-line py-5 text-ink-faint">{text}</li>;
+  return <li className="border-t border-line-soft py-5 text-ink-faint">{text}</li>;
 }
 
 function Decision({ entry, labels }: { entry: LedgerEntry; labels: Map<string, string> }) {
@@ -64,7 +62,7 @@ function Decision({ entry, labels }: { entry: LedgerEntry; labels: Map<string, s
   const [address, zat] = entry.payments[0] ?? ["", 0];
   const known = labels.get(address);
   return (
-    <li className="flex gap-3 border-t border-line py-4">
+    <li className="flex gap-3 border-t border-line-soft py-4">
       <span className={`mt-1 shrink-0 ${allowed ? "text-positive" : "text-danger"}`}>{allowed ? <CheckIcon size={16} /> : <CrossIcon size={16} />}</span>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4">
@@ -90,7 +88,7 @@ function OrderRow({ order }: { order: Order }) {
   const delivered = order.status === "delivered";
   const mock = order.invoiceId?.startsWith("inv_mock");
   return (
-    <li className="flex gap-3 border-t border-line py-4">
+    <li className="flex gap-3 border-t border-line-soft py-4">
       <span className={`mt-1 shrink-0 ${delivered ? "text-positive" : "text-signal"}`}>{delivered ? <CheckIcon size={16} /> : <CrossIcon size={16} />}</span>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-baseline justify-between gap-x-4">
