@@ -14,6 +14,8 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 use zcash_address::unified::{self, Container, Encoding};
 
+use zcash_protocol::consensus::NetworkType;
+
 use crate::check::Report;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -178,6 +180,11 @@ pub fn evaluate_at(policy: &Policy, ledger: &Ledger, report: &Report, now: u64) 
     if now.as_str() > policy.expires.as_str() {
         return Err(format!("policy expired at {}", policy.expires));
     }
+    let network = match policy.network.as_str() {
+        "main" => NetworkType::Main,
+        "test" => NetworkType::Test,
+        other => return Err(format!("policy network {other:?} is not \"main\" or \"test\"")),
+    };
     if report.payments.is_empty() {
         return Err("no payment to an outside address (self-sends are not covered by this policy)".into());
     }
@@ -186,7 +193,13 @@ pub fn evaluate_at(policy: &Policy, ledger: &Ledger, report: &Report, now: u64) 
     }
     let mut total = 0u64;
     for p in &report.payments {
-        let known = policy.allowed_recipients.iter().find(|r| same_recipient(&r.address, &p.address));
+        if network_of(&p.address) != Some(network) {
+            return Err(format!("payment to {} is not on the policy's network ({})", short(&p.address), policy.network));
+        }
+        let known = policy
+            .allowed_recipients
+            .iter()
+            .find(|r| network_of(&r.address) == Some(network) && same_recipient(&r.address, &p.address));
         let Some(known) = known else {
             return Err(format!("recipient {} is not on the allow-list", short(&p.address)));
         };
@@ -257,6 +270,21 @@ pub fn receivers(address: &str) -> Vec<(u32, Vec<u8>)> {
             })
             .collect(),
         Err(_) => Vec::new(),
+    }
+}
+
+/// The network a unified address is encoded for, from its prefix. The same
+/// receiver bytes are valid on every network, so a receiver match alone does
+/// not say which coins a payment moves.
+pub fn network_of(address: &str) -> Option<NetworkType> {
+    use zcash_address::constants::{mainnet, testnet};
+    let hrp = &address[..address.rfind('1')?];
+    if [mainnet::HRP_UNIFIED_ADDRESS, mainnet::HRP_UNIFIED_ADDRESS_R2, mainnet::HRP_UNIFIED_ADDRESS_R2_TI].contains(&hrp) {
+        Some(NetworkType::Main)
+    } else if [testnet::HRP_UNIFIED_ADDRESS, testnet::HRP_UNIFIED_ADDRESS_R2, testnet::HRP_UNIFIED_ADDRESS_R2_TI].contains(&hrp) {
+        Some(NetworkType::Test)
+    } else {
+        None
     }
 }
 
@@ -369,6 +397,47 @@ mod tests {
         assert_eq!(at, ["2026-12-03T23:59:59Z", "2026-12-04T00:00:01Z"]);
         assert!(ledger.verify().is_ok());
         let _ = fs::remove_dir_all(dir);
+    }
+
+    /// The same receiver encoded for another network.
+    fn on_network(address: &str, network: zcash_protocol::consensus::NetworkType) -> String {
+        let (_, _, ua) = unified::Address::decode(address).unwrap();
+        ua.encode(&network)
+    }
+
+    const REPORTED: &str = "utest19v8q4l3lhu0adp6u94d33evcd5kszx4g3cpymg5l7c43a0sjh7y495dykz2wuhfr2ch64zz4p32rv38tmasad6p3ra8pzmyagqzdh59s";
+
+    /// A policy is the owner's instruction for one network: its caps are in
+    /// that network's coins, so it applies to nothing on another.
+    #[test]
+    fn a_testnet_policy_refuses_a_mainnet_payment_to_the_same_receiver() {
+        use zcash_protocol::consensus::NetworkType;
+        let mut p = policy();
+        p.allowed_recipients = vec![Recipient { label: "counter".into(), address: REPORTED.into() }];
+        assert_eq!(evaluate(&p, &empty_ledger(), &report(vec![(REPORTED, 1)], 1)), Ok(()));
+        let mainnet = on_network(REPORTED, NetworkType::Main);
+        assert!(same_recipient(REPORTED, &mainnet), "the same receiver bytes");
+        let err = evaluate(&p, &empty_ledger(), &report(vec![(&mainnet, 1)], 1)).unwrap_err();
+        assert!(err.contains("network"), "{err}");
+    }
+
+    #[test]
+    fn an_allow_list_entry_for_another_network_matches_nothing() {
+        use zcash_protocol::consensus::NetworkType;
+        let mut p = policy();
+        p.allowed_recipients = vec![Recipient { label: "counter".into(), address: on_network(REPORTED, NetworkType::Main) }];
+        let err = evaluate(&p, &empty_ledger(), &report(vec![(REPORTED, 1)], 1)).unwrap_err();
+        assert!(err.contains("allow-list"), "{err}");
+    }
+
+    #[test]
+    fn a_policy_for_an_unknown_network_refuses_everything() {
+        for network in ["mainnet", "", "TEST", "regtest"] {
+            let mut p = policy();
+            p.network = network.into();
+            let err = evaluate(&p, &empty_ledger(), &report(vec![("utest1counter", 1)], 1)).unwrap_err();
+            assert!(err.contains("network"), "{network:?}: {err}");
+        }
     }
 
     #[test]
