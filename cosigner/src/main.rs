@@ -415,10 +415,8 @@ fn cosign(args: &[String]) -> Result<(), Box<dyn Error>> {
     }
     print_report(&seat.name, &report);
 
-    let policy_decision = match option(args, "--policy") {
-        Some(path) => Some(policy::decide(path, option(args, "--ledger").unwrap_or("ledger.jsonl"), &report)),
-        None => None,
-    };
+    let policy_decision =
+        option(args, "--policy").map(|path| policy::decide(path, option(args, "--ledger").unwrap_or("ledger.jsonl"), &report));
     if let Some(Err(reason)) = &policy_decision {
         return refuse(format!("policy: {reason}"));
     }
