@@ -1,0 +1,2 @@
+frost-zec vectors/tamper at 28b5b700da5f86c8a36333a23fb4ea9442e3802c (MIT, see ../../../LICENSE-frost-zec).
+Copied unchanged; tests/tamper_vectors.rs runs them through check and policy.

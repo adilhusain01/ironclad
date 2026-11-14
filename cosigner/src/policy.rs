@@ -14,6 +14,8 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 use zcash_address::unified::{self, Container, Encoding};
 
+use zcash_protocol::consensus::NetworkType;
+
 use crate::check::Report;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -105,9 +107,14 @@ impl Ledger {
     }
 
     pub fn append(&mut self, policy: &Policy, report: &Report, decision: &str, reason: Option<String>) -> Result<Entry, Box<dyn Error>> {
+        self.append_at(policy, report, decision, reason, now())
+    }
+
+    /// `append`, recorded at `now` (Unix seconds).
+    pub fn append_at(&mut self, policy: &Policy, report: &Report, decision: &str, reason: Option<String>, now: u64) -> Result<Entry, Box<dyn Error>> {
         let prev = self.entries.last().map(|e| e.hash.clone()).unwrap_or_else(|| "genesis".into());
         let mut entry = Entry {
-            at: now_iso(),
+            at: iso_from_unix(now),
             policy_hash: policy.hash(),
             payments: report.payments.iter().map(|p| (p.address.clone(), p.zat)).collect(),
             fee_zat: report.fee_zat,
@@ -132,9 +139,9 @@ fn entry_hash(e: &Entry) -> String {
     hex::encode(blake3::hash(body.to_string().as_bytes()).as_bytes())
 }
 
-pub fn now_iso() -> String {
-    let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
-    iso_from_unix(secs)
+/// The clock, in Unix seconds.
+pub fn now() -> u64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
 }
 
 /// A small UTC formatter so the crate needs no time dependency.
@@ -158,8 +165,14 @@ pub fn iso_from_unix(secs: u64) -> String {
 
 /// The decision, with nothing written anywhere.
 pub fn evaluate(policy: &Policy, ledger: &Ledger, report: &Report) -> Result<(), String> {
-    let now = now_iso();
-    // Compared as text, which is only sound in exactly the form now_iso()
+    evaluate_at(policy, ledger, report, now())
+}
+
+/// The decision at `now` (Unix seconds), the same clock the PCZT checks used
+/// (`check::analyze_at`), so expiry and the day's budget read one instant.
+pub fn evaluate_at(policy: &Policy, ledger: &Ledger, report: &Report, now: u64) -> Result<(), String> {
+    let now = iso_from_unix(now);
+    // Compared as text, which is only sound in exactly the form iso_from_unix()
     // writes; "never" would otherwise sort after every date and never expire.
     if !is_utc_timestamp(&policy.expires) {
         return Err(format!("policy expires {:?}, which is not a UTC timestamp like 2026-12-04T00:00:00Z", policy.expires));
@@ -167,6 +180,11 @@ pub fn evaluate(policy: &Policy, ledger: &Ledger, report: &Report) -> Result<(),
     if now.as_str() > policy.expires.as_str() {
         return Err(format!("policy expired at {}", policy.expires));
     }
+    let network = match policy.network.as_str() {
+        "main" => NetworkType::Main,
+        "test" => NetworkType::Test,
+        other => return Err(format!("policy network {other:?} is not \"main\" or \"test\"")),
+    };
     if report.payments.is_empty() {
         return Err("no payment to an outside address (self-sends are not covered by this policy)".into());
     }
@@ -175,7 +193,13 @@ pub fn evaluate(policy: &Policy, ledger: &Ledger, report: &Report) -> Result<(),
     }
     let mut total = 0u64;
     for p in &report.payments {
-        let known = policy.allowed_recipients.iter().find(|r| same_recipient(&r.address, &p.address));
+        if network_of(&p.address) != Some(network) {
+            return Err(format!("payment to {} is not on the policy's network ({})", short(&p.address), policy.network));
+        }
+        let known = policy
+            .allowed_recipients
+            .iter()
+            .find(|r| network_of(&r.address) == Some(network) && same_recipient(&r.address, &p.address));
         let Some(known) = known else {
             return Err(format!("recipient {} is not on the allow-list", short(&p.address)));
         };
@@ -195,17 +219,22 @@ pub fn evaluate(policy: &Policy, ledger: &Ledger, report: &Report) -> Result<(),
 /// Evaluate and record. The ledger line is written before the signature share
 /// leaves the process, so an allowed payment is always on the record.
 pub fn decide(policy_path: &str, ledger_path: &str, report: &Report) -> Result<(), String> {
+    decide_at(policy_path, ledger_path, report, now())
+}
+
+/// `decide` at `now` (Unix seconds), the instant the PCZT checks used.
+pub fn decide_at(policy_path: &str, ledger_path: &str, report: &Report, now: u64) -> Result<(), String> {
     let policy = Policy::load(policy_path).map_err(|e| format!("cannot load policy: {e}"))?;
     let mut ledger = Ledger::open(ledger_path).map_err(|e| format!("cannot open ledger: {e}"))?;
     if let Err(i) = ledger.verify() {
         return Err(format!("ledger chain broken at entry {i}; refusing everything until a human looks"));
     }
-    let verdict = evaluate(&policy, &ledger, report);
+    let verdict = evaluate_at(&policy, &ledger, report, now);
     let (decision, reason) = match &verdict {
         Ok(()) => ("allow", None),
         Err(r) => ("refuse", Some(r.clone())),
     };
-    ledger.append(&policy, report, decision, reason).map_err(|e| format!("cannot write ledger: {e}"))?;
+    ledger.append_at(&policy, report, decision, reason, now).map_err(|e| format!("cannot write ledger: {e}"))?;
     verdict
 }
 
@@ -241,6 +270,21 @@ pub fn receivers(address: &str) -> Vec<(u32, Vec<u8>)> {
             })
             .collect(),
         Err(_) => Vec::new(),
+    }
+}
+
+/// The network a unified address is encoded for, from its prefix. The same
+/// receiver bytes are valid on every network, so a receiver match alone does
+/// not say which coins a payment moves.
+pub fn network_of(address: &str) -> Option<NetworkType> {
+    use zcash_address::constants::{mainnet, testnet};
+    let hrp = &address[..address.rfind('1')?];
+    if [mainnet::HRP_UNIFIED_ADDRESS, mainnet::HRP_UNIFIED_ADDRESS_R2, mainnet::HRP_UNIFIED_ADDRESS_R2_TI].contains(&hrp) {
+        Some(NetworkType::Main)
+    } else if [testnet::HRP_UNIFIED_ADDRESS, testnet::HRP_UNIFIED_ADDRESS_R2, testnet::HRP_UNIFIED_ADDRESS_R2_TI].contains(&hrp) {
+        Some(NetworkType::Test)
+    } else {
+        None
     }
 }
 
@@ -328,6 +372,72 @@ mod tests {
         assert!(evaluate(&p, &empty_ledger(), &report(vec![("utest1counter", 1)], 1)).unwrap_err().contains("expired"));
         let p = policy();
         assert!(evaluate(&p, &empty_ledger(), &report(vec![("utest1counter", 1)], 40_000)).unwrap_err().contains("fee"));
+    }
+
+    /// The co-signer reads the clock once per request: the policy judges
+    /// expiry and the day's budget at that instant, and the ledger line
+    /// records it, whatever the wall clock says.
+    #[test]
+    fn decide_at_judges_and_records_the_given_instant() {
+        let dir = std::env::temp_dir().join(format!("ironclad-clock-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let (policy_path, ledger_path) = (dir.join("policy.json"), dir.join("ledger.jsonl"));
+        let mut p = policy();
+        p.expires = "2026-12-04T00:00:00Z".into();
+        fs::write(&policy_path, serde_json::to_vec(&p).unwrap()).unwrap();
+        let (policy_path, ledger_path) = (policy_path.to_str().unwrap(), ledger_path.to_str().unwrap());
+        let paid = report(vec![("utest1counter", 1_000_000)], 10_000);
+        // 2026-12-03T23:59:59Z, then 2026-12-04T00:00:01Z.
+        assert_eq!(decide_at(policy_path, ledger_path, &paid, 1_796_342_399), Ok(()));
+        let late = decide_at(policy_path, ledger_path, &paid, 1_796_342_401).unwrap_err();
+        assert!(late.contains("expired"), "{late}");
+        let ledger = Ledger::open(ledger_path).unwrap();
+        let at: Vec<&str> = ledger.entries.iter().map(|e| e.at.as_str()).collect();
+        assert_eq!(at, ["2026-12-03T23:59:59Z", "2026-12-04T00:00:01Z"]);
+        assert!(ledger.verify().is_ok());
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    /// The same receiver encoded for another network.
+    fn on_network(address: &str, network: zcash_protocol::consensus::NetworkType) -> String {
+        let (_, _, ua) = unified::Address::decode(address).unwrap();
+        ua.encode(&network)
+    }
+
+    const REPORTED: &str = "utest19v8q4l3lhu0adp6u94d33evcd5kszx4g3cpymg5l7c43a0sjh7y495dykz2wuhfr2ch64zz4p32rv38tmasad6p3ra8pzmyagqzdh59s";
+
+    /// A policy is the owner's instruction for one network: its caps are in
+    /// that network's coins, so it applies to nothing on another.
+    #[test]
+    fn a_testnet_policy_refuses_a_mainnet_payment_to_the_same_receiver() {
+        use zcash_protocol::consensus::NetworkType;
+        let mut p = policy();
+        p.allowed_recipients = vec![Recipient { label: "counter".into(), address: REPORTED.into() }];
+        assert_eq!(evaluate(&p, &empty_ledger(), &report(vec![(REPORTED, 1)], 1)), Ok(()));
+        let mainnet = on_network(REPORTED, NetworkType::Main);
+        assert!(same_recipient(REPORTED, &mainnet), "the same receiver bytes");
+        let err = evaluate(&p, &empty_ledger(), &report(vec![(&mainnet, 1)], 1)).unwrap_err();
+        assert!(err.contains("network"), "{err}");
+    }
+
+    #[test]
+    fn an_allow_list_entry_for_another_network_matches_nothing() {
+        use zcash_protocol::consensus::NetworkType;
+        let mut p = policy();
+        p.allowed_recipients = vec![Recipient { label: "counter".into(), address: on_network(REPORTED, NetworkType::Main) }];
+        let err = evaluate(&p, &empty_ledger(), &report(vec![(REPORTED, 1)], 1)).unwrap_err();
+        assert!(err.contains("allow-list"), "{err}");
+    }
+
+    #[test]
+    fn a_policy_for_an_unknown_network_refuses_everything() {
+        for network in ["mainnet", "", "TEST", "regtest"] {
+            let mut p = policy();
+            p.network = network.into();
+            let err = evaluate(&p, &empty_ledger(), &report(vec![("utest1counter", 1)], 1)).unwrap_err();
+            assert!(err.contains("network"), "{network:?}: {err}");
+        }
     }
 
     #[test]
