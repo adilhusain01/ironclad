@@ -28,7 +28,7 @@ const proofs: { title: string; line: string; txid?: string; extra?: React.ReactN
     line: "zshield-mcp's zcash_pay tool on this wallet: one payment co-signed, one refused at the key after zshield's own checks let it through.",
     txid: "3202e8ce9d3f0e5008716b8f9a84e69f936f955751493ebb3494f5659dab2b87",
     extra: (
-      <a href="zshield.html" className={`text-sm ${button.link}`}>
+      <a href="zshield" className={`text-sm ${button.link}`}>
         See the zshield-mcp run
       </a>
     ),

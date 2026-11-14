@@ -106,7 +106,7 @@ export function Footer() {
           <a href={links.github} className="hover:text-ink">
             Source
           </a>
-          <a href="zshield.html" className="hover:text-ink">
+          <a href="zshield" className="hover:text-ink">
             zshield-mcp
           </a>
           <a href={links.frostIssue} className="hover:text-ink">
