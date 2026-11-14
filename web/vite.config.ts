@@ -7,4 +7,6 @@ export default defineConfig({
   base: "./",
   plugins: [react(), tailwindcss()],
   server: { port: 5175 },
+  // Two pages: the site, and the zshield-mcp milestone page at zshield.html.
+  build: { rollupOptions: { input: { main: "index.html", zshield: "zshield.html" } } },
 });

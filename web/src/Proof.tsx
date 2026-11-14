@@ -24,6 +24,16 @@ const proofs: { title: string; line: string; txid?: string; extra?: React.ReactN
     txid: "1cbec807f17289bf99254581c051fce9d62bf4ac182b33ec41820c3c7605f4ab",
   },
   {
+    title: "The same key behind zshield-mcp",
+    line: "zshield-mcp's zcash_pay tool on this wallet: one payment co-signed, one refused at the key after zshield's own checks let it through.",
+    txid: "3202e8ce9d3f0e5008716b8f9a84e69f936f955751493ebb3494f5659dab2b87",
+    extra: (
+      <a href="zshield.html" className="text-sm font-bold text-ink underline decoration-line underline-offset-4 hover:decoration-ink">
+        See the zshield-mcp run
+      </a>
+    ),
+  },
+  {
     title: "Refusals leave nothing on chain",
     line: "An over-cap payment and a payment to a stranger were refused at the key. No signature exists, so there is no transaction to show.",
     extra: (
