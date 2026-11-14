@@ -1,5 +1,5 @@
 // The Ecosystem Prize milestone page: Ironclad as a chain mode in zshield-mcp. Everything on it is the
-// record of one live run on 14 November 2026; the two co-signer decisions are quoted as logged, because
+// record of the live runs on 14 November 2026 (UTC); the two co-signer decisions are quoted as logged, because
 // the live API only returns the 20 most recent ones.
 
 import { StrictMode, type ReactNode } from "react";
@@ -33,6 +33,7 @@ const checks: { title: string; share: string; items: string[] }[] = [
       "An idempotency key on every live payment",
       "An audit row written before anything is built",
       "The txid recorded before the broadcast",
+      "No answer from the co-signer in two minutes means not sent",
     ],
   },
   {
@@ -68,6 +69,10 @@ const runLines: { text: string; tone?: "faint" | "green" | "red" | "orange" }[] 
   { text: '  "cap_zec": "0.25",' },
   { text: '  "code": "CHAIN_ERROR",', tone: "red" },
   { text: '  "error": "the Ironclad co-signer refused to sign (policy: 21000000 zat to Ironclad counter (Bitrefill fulfilment, testnet) is above the per-payment cap of 20000000 zat). Nothing was sent."', tone: "red" },
+  { text: "" },
+  { text: "$ zcash_pay 0.001 TAZ to the counter, no co-signer running", tone: "faint" },
+  { text: '  "code": "CHAIN_ERROR",', tone: "red" },
+  { text: '  "error": "the Ironclad co-signer did not answer within 120 s (is its daemon running?). Nothing was sent."', tone: "red" },
 ];
 
 const setup = `CHAIN_MODE=ironclad \\
@@ -171,7 +176,7 @@ function Steps() {
   );
 }
 
-function Decision({ allowed, title, line, at, hash, prev, children }: { allowed: boolean; title: string; line: string; at: string; hash: string; prev?: string; children?: ReactNode }) {
+function Decision({ allowed, title, line, at, hash, prev, children }: { allowed: boolean; title: string; line: string; at?: string; hash?: string; prev?: string; children?: ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-2 border-t border-line py-6 last:border-b">
       <div className="flex items-center gap-2.5">
@@ -182,11 +187,13 @@ function Decision({ allowed, title, line, at, hash, prev, children }: { allowed:
       </div>
       <p className="leading-[1.6] text-ink-soft">{line}</p>
       {children}
-      <p className="flex flex-wrap gap-x-3 font-mono text-[0.8rem] text-ink-faint">
-        <span>co-signer ledger {at}</span>
-        <span>hash {hash.slice(0, 16)}…</span>
-        {prev && <span>prev {prev.slice(0, 16)}…</span>}
-      </p>
+      {at && hash && (
+        <p className="flex flex-wrap gap-x-3 font-mono text-[0.8rem] text-ink-faint">
+          <span>co-signer ledger {at}</span>
+          <span>hash {hash.slice(0, 16)}…</span>
+          {prev && <span>prev {prev.slice(0, 16)}…</span>}
+        </p>
+      )}
     </div>
   );
 }
@@ -195,8 +202,8 @@ function Run() {
   const tone = { faint: "text-term-faint", green: "text-term-green", red: "text-term-red", orange: "text-term-orange" };
   return (
     <Section id="run">
-      <SectionHeading title="The run on 14 November 2026">
-        zshield-mcp ran as an MCP server over stdio, the way an MCP host starts it, against the Ironclad co-signer on testnet. The owner's policy caps one payment at 0.2 TAZ.
+      <SectionHeading title="The live runs">
+        zshield-mcp ran as an MCP server over stdio, the way an MCP host starts it, against the Ironclad co-signer on testnet, on 14 November 2026 (UTC). The owner's policy caps one payment at 0.2 TAZ.
       </SectionHeading>
       <div className="mt-12 grid gap-x-16 gap-y-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
         <div className="flex min-w-0 flex-col">
@@ -216,6 +223,11 @@ function Run() {
             at="2026-11-14T09:20:59Z"
             hash="84c59e93b1147ae498b11e0afc16e2797b30c9a2980c4debcbf654fb2d30651f"
             prev="ebf4d378eb3da7d9665744e96aec7fd24e34e4c4775f6dbc4a837d5d1bb5df76"
+          />
+          <Decision
+            allowed={false}
+            title="0.001 TAZ with the co-signer offline, refused"
+            line="Later the same day, zshield pointed at a session folder no co-signer watches. The signing round waited two minutes, then the call ended as not sent. Nothing reached a co-signer, so there is no ledger line, and no signature or transaction exists."
           />
         </div>
         <div className="min-w-0 self-start overflow-hidden rounded-xl bg-term">
