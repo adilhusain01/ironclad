@@ -8,9 +8,9 @@
 
 import { execFileSync, spawn } from "node:child_process";
 import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
-import { extname, join, normalize } from "node:path";
+import { extname, join } from "node:path";
 import { createServer } from "node:http";
-import { DayBudget, insideDir, readBody, remember } from "./guards.js";
+import { DayBudget, readBody, remember, siteFile } from "./guards.js";
 const env = (k: string, fallback: string) => process.env[k] ?? fallback;
 
 const POLICY_FILE = env("POLICY_FILE", "../policy/example-policy.json");
@@ -65,8 +65,8 @@ function txPage(txid: string, result: string): string {
 
 function serveSite(path: string, res: import("node:http").ServerResponse): boolean {
   if (!existsSync(join(WEB_DIST, "index.html"))) return false;
-  const file = normalize(join(WEB_DIST, path === "/" ? "index.html" : path));
-  if (!insideDir(WEB_DIST, file) || !existsSync(file) || !statSync(file).isFile()) return false;
+  const file = siteFile(WEB_DIST, path);
+  if (!file) return false;
   const cache = path.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-cache";
   res.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream", "cache-control": cache });
   createReadStream(file).pipe(res);

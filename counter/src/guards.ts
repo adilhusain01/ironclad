@@ -1,12 +1,23 @@
 // Limits for the public dashboard: anyone on the internet can call it.
 
-import { resolve, sep } from "node:path";
+import { existsSync, statSync } from "node:fs";
+import { join, normalize, resolve, sep } from "node:path";
 
 /** Whether `file` is `dir` or inside it, after resolving `..`. */
 export function insideDir(dir: string, file: string): boolean {
   const root = resolve(dir);
   const target = resolve(file);
   return target === root || target.startsWith(root + sep);
+}
+
+// The file a site path names inside the built site: / is index.html, and a path with no file of its own
+// tries the same name with .html, so /zshield serves zshield.html. Folders and anything outside are null.
+export function siteFile(dist: string, path: string): string | null {
+  const base = normalize(join(dist, path === "/" ? "index.html" : path));
+  for (const file of [base, `${base}.html`]) {
+    if (insideDir(dist, file) && existsSync(file) && statSync(file).isFile()) return file;
+  }
+  return null;
 }
 
 /** The request body as text, or an error once it passes `max` bytes. */
