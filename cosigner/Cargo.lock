@@ -752,7 +752,7 @@ dependencies = [
 [[package]]
 name = "frost-zec"
 version = "0.1.0"
-source = "git+https://github.com/adilhusain01/frost-zec?rev=28b5b700da5f86c8a36333a23fb4ea9442e3802c#28b5b700da5f86c8a36333a23fb4ea9442e3802c"
+source = "git+https://github.com/OpenPGP-Wallet/frost-zec?rev=ef92e1e812590348cbe537fa47fd0c3517c59ee7#ef92e1e812590348cbe537fa47fd0c3517c59ee7"
 dependencies = [
  "argon2",
  "base64ct",

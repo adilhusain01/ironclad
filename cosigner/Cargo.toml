@@ -6,11 +6,11 @@ license = "MIT"
 
 # The PCZT checks, keys, sessions, DKG and backups come from frost-zec (MIT,
 # Khadim's crate); Ironclad adds the policy, the ledger and the daemon. This
-# pins master plus OpenPGP-Wallet/frost-zec#9 (the structured payment report
-# policy.rs reads), which is not in a crates.io release yet. Move to the
-# crates.io version once a release includes #9.
+# pins frost-zec master after #9 (the structured payment report policy.rs
+# reads) and #11 merged on 15 November 2026. Neither is in a crates.io release
+# yet; move to 0.2.0 once it is published.
 [dependencies]
-frost-zec = { git = "https://github.com/adilhusain01/frost-zec", rev = "28b5b700da5f86c8a36333a23fb4ea9442e3802c", default-features = false }
+frost-zec = { git = "https://github.com/OpenPGP-Wallet/frost-zec", rev = "ef92e1e812590348cbe537fa47fd0c3517c59ee7", default-features = false }
 blake3 = "1"
 hex = "0.4"
 # The NU7 releases of the Zcash libraries (2026-10-21), the same pins as frost-zec.
