@@ -10,7 +10,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { extname, join } from "node:path";
 import { createServer } from "node:http";
-import { DayBudget, readBody, remember, siteFile } from "./guards.js";
+import { DayBudget, maskPhones, readBody, remember, siteFile } from "./guards.js";
 const env = (k: string, fallback: string) => process.env[k] ?? fallback;
 
 const POLICY_FILE = env("POLICY_FILE", "../policy/example-policy.json");
@@ -236,7 +236,8 @@ createServer(async (req, res) => {
   if (req.method === "GET" && url.pathname === "/api/state") {
     let body: string;
     try {
-      body = JSON.stringify(state());
+      // Orders, run lines and the demo log can carry a top-up's phone number: never in full here.
+      body = maskPhones(JSON.stringify(state()));
     } catch (e) {
       // a file caught mid-write, or a broken one: say so instead of dropping the request
       res.writeHead(503, { ...CORS, "content-type": "text/plain", "retry-after": "2" });
@@ -286,7 +287,7 @@ createServer(async (req, res) => {
     logDemo(kind, out);
     lastDemo = Date.now();
     res.writeHead(200, { ...CORS, "content-type": "text/plain; charset=utf-8" });
-    return res.end(out);
+    return res.end(maskPhones(out));
   }
   res.writeHead(404);
   res.end("not found");

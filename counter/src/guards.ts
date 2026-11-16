@@ -20,6 +20,15 @@ export function siteFile(dist: string, path: string): string | null {
   return null;
 }
 
+// An Indian phone number as top-ups carry it (91 and ten digits) standing on its own: not part of a
+// longer number, a hex hash or a word. A JSON escape such as \n before it still counts as a boundary.
+const PHONE = /(?:(?<![0-9A-Za-z])|(?<=\\[nrt]))91(\d{8})(\d{2})(?![0-9A-Za-z])/g;
+
+/** Text for the public API with every phone number cut to its first and last two digits. */
+export function maskPhones(text: string): string {
+  return text.replace(PHONE, (_match, _middle, last: string) => `91********${last}`);
+}
+
 /** The request body as text, or an error once it passes `max` bytes. */
 export async function readBody(stream: AsyncIterable<unknown>, max: number): Promise<string> {
   const chunks: Buffer[] = [];
