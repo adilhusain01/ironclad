@@ -400,7 +400,9 @@ fn cosign(args: &[String]) -> Result<(), Box<dyn Error>> {
         Ok(pczt) => pczt,
         Err(e) => return refuse(e.to_string()),
     };
-    let report = match check::analyze(&pczt, &seat.fvk, seat.network) {
+    // One clock reading for the checks, the policy and the ledger line.
+    let now = policy::now();
+    let report = match check::analyze_at(&pczt, &seat.fvk, seat.network, now) {
         Ok(report) => report,
         Err(e) => return refuse(e.to_string()),
     };
@@ -415,10 +417,8 @@ fn cosign(args: &[String]) -> Result<(), Box<dyn Error>> {
     }
     print_report(&seat.name, &report);
 
-    let policy_decision = match option(args, "--policy") {
-        Some(path) => Some(policy::decide(path, option(args, "--ledger").unwrap_or("ledger.jsonl"), &report)),
-        None => None,
-    };
+    let policy_decision =
+        option(args, "--policy").map(|path| policy::decide_at(path, option(args, "--ledger").unwrap_or("ledger.jsonl"), &report, now));
     if let Some(Err(reason)) = &policy_decision {
         return refuse(format!("policy: {reason}"));
     }
@@ -491,9 +491,10 @@ fn policy_check(args: &[String]) -> Result<(), Box<dyn Error>> {
     let path = option(args, "--policy").ok_or("--policy FILE is required")?;
     let seat = Seat::load(args, 2)?;
     let pczt = pczt_io::parse(&fs::read(input)?)?;
-    let report = check::analyze(&pczt, &seat.fvk, seat.network)?;
+    let now = policy::now();
+    let report = check::analyze_at(&pczt, &seat.fvk, seat.network, now)?;
     print_report(&seat.name, &report);
-    match policy::evaluate(&policy::Policy::load(path)?, &policy::Ledger::open(option(args, "--ledger").unwrap_or("ledger.jsonl"))?, &report) {
+    match policy::evaluate_at(&policy::Policy::load(path)?, &policy::Ledger::open(option(args, "--ledger").unwrap_or("ledger.jsonl"))?, &report, now) {
         Ok(()) => println!("policy: ALLOW"),
         Err(reason) => println!("policy: REFUSE ({reason})"),
     }

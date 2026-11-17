@@ -7,6 +7,7 @@
 *.pczt
 # frost-zec's public test vector, byte-identical to upstream's
 !cosigner/tests/fixtures/*.pczt
+!cosigner/tests/fixtures/tamper/*/*.pczt
 *.age
 data/
 session/
