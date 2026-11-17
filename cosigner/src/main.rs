@@ -10,7 +10,7 @@
 //!   selftest                                  in-memory DKG + signatures with every pair, no network
 //!   keygen [--network main|test] [--force]    run the DKG and save the shares in data/
 //!   info [--vault DIR]                        the group's unified viewing key and address
-//!   inspect --pczt IN [--vault DIR]           check a PCZT and show what it does, without signing
+//!   inspect --pczt IN [--vault DIR] [--json]  check a PCZT and show what it does, without signing
 //!   sign --pczt IN --out OUT [--signers 1,3]  check and sign a proven PCZT in one process
 //!   coordinate [--as 1 | --vault DIR] [--dir session] --pczt IN --out OUT
 //!                                             check the PCZT, then run the signing session
@@ -228,6 +228,10 @@ fn inspect(args: &[String]) -> Result<(), Box<dyn Error>> {
     let seat = Seat::load(args, 1)?;
     let pczt = pczt_io::parse(&fs::read(input)?)?;
     let report = check::analyze(&pczt, &seat.fvk, seat.network)?;
+    if args.iter().any(|a| a == "--json") {
+        println!("{}", ironclad_cosigner::report::inspect_json(&pczt, &report)?);
+        return Ok(());
+    }
     print_report("this group", &report);
     println!("  sighash {}", hex::encode(pczt_io::sighash(&pczt)?));
     println!("  {} spend(s) waiting for a signature", pczt_io::spends_to_sign(&pczt)?.len());
