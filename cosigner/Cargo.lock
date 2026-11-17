@@ -751,8 +751,9 @@ dependencies = [
 
 [[package]]
 name = "frost-zec"
-version = "0.1.0"
-source = "git+https://github.com/OpenPGP-Wallet/frost-zec?rev=ef92e1e812590348cbe537fa47fd0c3517c59ee7#ef92e1e812590348cbe537fa47fd0c3517c59ee7"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e5bbc508e667f925587fce76260c9112beb35eb3e8778def25c0cad6a7ab1d35"
 dependencies = [
  "argon2",
  "base64ct",

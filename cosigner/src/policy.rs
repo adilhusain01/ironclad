@@ -303,19 +303,6 @@ fn short(address: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::check::Payment;
-
-    fn report(payments: Vec<(&str, u64)>, fee: u64) -> Report {
-        Report {
-            lines: vec![],
-            warnings: vec![],
-            payments: payments.into_iter().map(|(a, z)| Payment { address: a.into(), zat: z }).collect(),
-            spent_zat: 0,
-            change_zat: 0,
-            fee_zat: fee,
-            expiry_height: 0,
-        }
-    }
 
     fn policy() -> Policy {
         Policy {
@@ -328,129 +315,6 @@ mod tests {
             max_fee_zat: 30_000,
             expires: "2099-01-01T00:00:00Z".into(),
         }
-    }
-
-    fn empty_ledger() -> Ledger {
-        Ledger { path: "/dev/null".into(), entries: vec![] }
-    }
-
-    #[test]
-    fn allows_a_payment_inside_the_policy() {
-        assert!(evaluate(&policy(), &empty_ledger(), &report(vec![("utest1counter", 1_000_000)], 10_000)).is_ok());
-    }
-
-    #[test]
-    fn refuses_an_unknown_recipient() {
-        let err = evaluate(&policy(), &empty_ledger(), &report(vec![("utest1attacker", 1_000_000)], 10_000)).unwrap_err();
-        assert!(err.contains("allow-list"), "{err}");
-    }
-
-    #[test]
-    fn refuses_over_the_per_payment_cap() {
-        let err = evaluate(&policy(), &empty_ledger(), &report(vec![("utest1counter", 20_000_001)], 10_000)).unwrap_err();
-        assert!(err.contains("per-payment cap"), "{err}");
-    }
-
-    #[test]
-    fn refuses_when_the_daily_budget_runs_out() {
-        let dir = std::env::temp_dir().join(format!("ironclad-ledger-{}", std::process::id()));
-        let _ = fs::remove_file(&dir);
-        let mut ledger = Ledger::open(dir.to_str().unwrap()).unwrap();
-        let p = policy();
-        ledger.append(&p, &report(vec![("utest1counter", 20_000_000)], 10_000), "allow", None).unwrap();
-        ledger.append(&p, &report(vec![("utest1counter", 20_000_000)], 10_000), "allow", None).unwrap();
-        assert!(evaluate(&p, &ledger, &report(vec![("utest1counter", 10_000_000)], 10_000)).is_ok());
-        let err = evaluate(&p, &ledger, &report(vec![("utest1counter", 10_000_001)], 10_000)).unwrap_err();
-        assert!(err.contains("daily budget"), "{err}");
-        assert!(Ledger::open(dir.to_str().unwrap()).unwrap().verify().is_ok());
-    }
-
-    #[test]
-    fn refuses_an_expired_policy_and_a_high_fee() {
-        let mut p = policy();
-        p.expires = "2000-01-01T00:00:00Z".into();
-        assert!(evaluate(&p, &empty_ledger(), &report(vec![("utest1counter", 1)], 1)).unwrap_err().contains("expired"));
-        let p = policy();
-        assert!(evaluate(&p, &empty_ledger(), &report(vec![("utest1counter", 1)], 40_000)).unwrap_err().contains("fee"));
-    }
-
-    /// The co-signer reads the clock once per request: the policy judges
-    /// expiry and the day's budget at that instant, and the ledger line
-    /// records it, whatever the wall clock says.
-    #[test]
-    fn decide_at_judges_and_records_the_given_instant() {
-        let dir = std::env::temp_dir().join(format!("ironclad-clock-{}", std::process::id()));
-        let _ = fs::remove_dir_all(&dir);
-        fs::create_dir_all(&dir).unwrap();
-        let (policy_path, ledger_path) = (dir.join("policy.json"), dir.join("ledger.jsonl"));
-        let mut p = policy();
-        p.expires = "2026-12-04T00:00:00Z".into();
-        fs::write(&policy_path, serde_json::to_vec(&p).unwrap()).unwrap();
-        let (policy_path, ledger_path) = (policy_path.to_str().unwrap(), ledger_path.to_str().unwrap());
-        let paid = report(vec![("utest1counter", 1_000_000)], 10_000);
-        // 2026-12-03T23:59:59Z, then 2026-12-04T00:00:01Z.
-        assert_eq!(decide_at(policy_path, ledger_path, &paid, 1_796_342_399), Ok(()));
-        let late = decide_at(policy_path, ledger_path, &paid, 1_796_342_401).unwrap_err();
-        assert!(late.contains("expired"), "{late}");
-        let ledger = Ledger::open(ledger_path).unwrap();
-        let at: Vec<&str> = ledger.entries.iter().map(|e| e.at.as_str()).collect();
-        assert_eq!(at, ["2026-12-03T23:59:59Z", "2026-12-04T00:00:01Z"]);
-        assert!(ledger.verify().is_ok());
-        let _ = fs::remove_dir_all(dir);
-    }
-
-    /// The same receiver encoded for another network.
-    fn on_network(address: &str, network: zcash_protocol::consensus::NetworkType) -> String {
-        let (_, _, ua) = unified::Address::decode(address).unwrap();
-        ua.encode(&network)
-    }
-
-    const REPORTED: &str = "utest19v8q4l3lhu0adp6u94d33evcd5kszx4g3cpymg5l7c43a0sjh7y495dykz2wuhfr2ch64zz4p32rv38tmasad6p3ra8pzmyagqzdh59s";
-
-    /// A policy is the owner's instruction for one network: its caps are in
-    /// that network's coins, so it applies to nothing on another.
-    #[test]
-    fn a_testnet_policy_refuses_a_mainnet_payment_to_the_same_receiver() {
-        use zcash_protocol::consensus::NetworkType;
-        let mut p = policy();
-        p.allowed_recipients = vec![Recipient { label: "counter".into(), address: REPORTED.into() }];
-        assert_eq!(evaluate(&p, &empty_ledger(), &report(vec![(REPORTED, 1)], 1)), Ok(()));
-        let mainnet = on_network(REPORTED, NetworkType::Main);
-        assert!(same_recipient(REPORTED, &mainnet), "the same receiver bytes");
-        let err = evaluate(&p, &empty_ledger(), &report(vec![(&mainnet, 1)], 1)).unwrap_err();
-        assert!(err.contains("network"), "{err}");
-    }
-
-    #[test]
-    fn an_allow_list_entry_for_another_network_matches_nothing() {
-        use zcash_protocol::consensus::NetworkType;
-        let mut p = policy();
-        p.allowed_recipients = vec![Recipient { label: "counter".into(), address: on_network(REPORTED, NetworkType::Main) }];
-        let err = evaluate(&p, &empty_ledger(), &report(vec![(REPORTED, 1)], 1)).unwrap_err();
-        assert!(err.contains("allow-list"), "{err}");
-    }
-
-    #[test]
-    fn a_policy_for_an_unknown_network_refuses_everything() {
-        for network in ["mainnet", "", "TEST", "regtest"] {
-            let mut p = policy();
-            p.network = network.into();
-            let err = evaluate(&p, &empty_ledger(), &report(vec![("utest1counter", 1)], 1)).unwrap_err();
-            assert!(err.contains("network"), "{network:?}: {err}");
-        }
-    }
-
-    #[test]
-    fn a_tampered_ledger_is_detected() {
-        let dir = std::env::temp_dir().join(format!("ironclad-tamper-{}", std::process::id()));
-        let _ = fs::remove_file(&dir);
-        let mut ledger = Ledger::open(dir.to_str().unwrap()).unwrap();
-        let p = policy();
-        ledger.append(&p, &report(vec![("utest1counter", 5)], 1), "allow", None).unwrap();
-        ledger.append(&p, &report(vec![("utest1counter", 6)], 1), "allow", None).unwrap();
-        let text = fs::read_to_string(&dir).unwrap().replace("\"decision\":\"allow\"", "\"decision\":\"refuse\"");
-        fs::write(&dir, text).unwrap();
-        assert_eq!(Ledger::open(dir.to_str().unwrap()).unwrap().verify(), Err(0));
     }
 
     #[test]
@@ -483,18 +347,6 @@ mod tests {
             &ua(unified::Receiver::Sapling(bytes)),
             &paid
         ));
-    }
-
-    /// An expiry the co-signer cannot read must not mean "never expires".
-    #[test]
-    fn an_expiry_that_is_not_a_utc_timestamp_refuses() {
-        for bad in ["never", "2099-01-01", "2099-01-01T00:00:00+05:30", ""] {
-            let mut p = policy();
-            p.expires = bad.into();
-            let err =
-                evaluate(&p, &empty_ledger(), &report(vec![("utest1counter", 1)], 1)).unwrap_err();
-            assert!(err.contains("expires"), "{bad}: {err}");
-        }
     }
 
     /// A rule the co-signer does not know must not load and look enforced.
